@@ -1,0 +1,41 @@
+
+; with some inspiration from https://github.com/swaywm/wlroots-ocaml/
+
+; generate the stubs for the types
+(executable
+  (name types_gen)
+  (modules types_gen)
+  (modes native)
+  (flags :standard -warn-error -a+8)
+  (libraries ctypes.stubs yojson))
+
+(rule
+  (with-stdout-to "stubs_types.ml" (run ./types_gen.exe)))
+
+; stubgen phase 1
+
+; generated from above
+(library
+  (name stubs_types)
+  (modules stubs_types)
+  (modes native)
+  (flags :standard -warn-error -a+8)
+  (libraries ctypes ctypes.stubs ctypes.foreign))
+
+(executable
+  (name stubs_types_gen)
+  (modules stubs_types_gen)
+  (modes native)
+  (flags :standard -warn-error -a+8)
+  (libraries stubs_types ctypes ctypes.stubs ctypes.foreign))
+
+(rule
+  (with-stdout-to "imgui-types.c" (run ./stubs_types_gen.exe)))
+
+(executable
+  (name funs_gen)
+  (modules funs_gen)
+  (modes native)
+  (flags :standard -warn-error -a+8)
+  (libraries yojson ctypes.foreign ctypes))
+

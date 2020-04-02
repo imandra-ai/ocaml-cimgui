@@ -1,0 +1,5 @@
+
+(rule
+  (targets imgui_sys.ml imgui_sys.mli)
+  (deps ../bindgen/funs_gen.exe (source_tree ../../vendor/cimgui))
+  (action (run ../bindgen/funs_gen.exe -d .)))
