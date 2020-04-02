@@ -75,7 +75,8 @@ let () =
         let ty = expand_ty ~fdef s in
         spf "(ptr %s)" ty
       | s when Str_.prefix "ImVector_" s ->
-        spf "(abstract ~name:%S ~size:%d ~alignment:8)" s (3 * 8)
+        (* TODO: type annotation *)
+        spf "(abstract ~name:%S ~size:%d ~alignment:8 : unit abstract typ)" s (3 * 8)
       | s when Str_.prefix "const " s ->
         (* drop const *)
         let lenc = String.length "const " in
@@ -104,7 +105,7 @@ let () =
   pfl "open Ctypes";
   pfl "module Make(S : Cstubs_structs.TYPE) = struct";
   pfl "  open S";
-  pfl "let voidp = ptr (abstract ~name:\"void\" ~size:8 ~alignment:8)";
+  pfl "let voidp = ptr void";
   (* graph of type name -> declaration, with dependencies *)
   let decls = ref [] in
   let mods = ref [] in
