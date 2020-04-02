@@ -1,36 +1,43 @@
 
 ; with some inspiration from https://github.com/swaywm/wlroots-ocaml/
 
+(library
+  (name ty_g)
+  (flags :standard -warn-error -a+8)
+  (modules ty_g))
+
 ; generate the stubs for the types
 (executable
-  (name types_gen)
-  (modules types_gen)
+  (name types_stubgen_gen)
+  (modules types_stubgen_gen)
   (modes native)
   (flags :standard -warn-error -a+8)
-  (libraries ctypes.stubs yojson))
+  (libraries ty_g ctypes.stubs yojson))
 
 (rule
-  (with-stdout-to "stubs_types.ml" (run ./types_gen.exe)))
+  (targets types_stubs_generated.ml types.data)
+  (action
+   (with-stdout-to types_stubs_generated.ml (run ./types_stubgen_gen.exe))))
 
 ; stubgen phase 1
 
 ; generated from above
 (library
-  (name stubs_types)
-  (modules stubs_types)
+  (name types_stubs_generated)
+  (modules types_stubs_generated)
   (modes native)
   (flags :standard -warn-error -a+8)
   (libraries ctypes ctypes.stubs ctypes.foreign))
 
 (executable
-  (name stubs_types_gen)
-  (modules stubs_types_gen)
+  (name types_gen_c)
+  (modules types_gen_c)
   (modes native)
   (flags :standard -warn-error -a+8)
-  (libraries stubs_types ctypes ctypes.stubs ctypes.foreign))
+  (libraries types_stubs_generated ctypes ctypes.stubs ctypes.foreign))
 
 (rule
-  (with-stdout-to "imgui-types-stubgen.c" (run ./stubs_types_gen.exe)))
+  (with-stdout-to "imgui-types-stubgen.c" (run ./types_gen_c.exe)))
 
 ; Stubgen, phase 2
 ; C executable that checks struct offsets and outputs ML file
@@ -39,16 +46,34 @@
   (deps (:types_stubgen ./imgui-types-stubgen.c)
         (source_tree ../../vendor/cimgui/))
   (action (bash "\
- %{cc} %{types_stubgen} \
+ %{cc} \
+  -DCIMGUI_DEFINE_ENUMS_AND_STRUCTS=1 \
   -I %{ocaml_where} \
   -I `dirname %{lib:ctypes:ctypes_cstubs_internals.h}` \
   -I ../../vendor/cimgui/generator/output/ \
+  -I ../../vendor/cimgui/imgui/ \
+  %{types_stubgen} \
   -o %{targets}")))
 
+(rule (with-stdout-to "generated_types.ml" (run "./types_stubgen.exe")))
+
+; Binding functions
+
 (executable
-  (name funs_gen)
-  (modules funs_gen)
+  (name funs_stubgen_gen)
+  (modules funs_stubgen_gen)
   (modes native)
-  (flags :standard -warn-error -a+8)
-  (libraries yojson ctypes.foreign ctypes))
+  (flags :standard -warn-error -a+8 -w -9)
+  (libraries yojson ty_g ctypes.foreign ctypes))
+
+; generate the functorized signatures
+(rule
+  (with-stdout-to "funs_ffi.ml" (run "./funs_stubgen_gen.exe")))
+
+(executable
+  (name funs_stubgen_driver)
+  (modules funs_stubgen_driver generated_types funs_ffi)
+  (modes native)
+  (flags :standard -warn-error -a+8 -w -9)
+  (libraries ctypes.foreign ctypes types_stubs_generated))
 

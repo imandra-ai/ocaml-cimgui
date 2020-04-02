@@ -1,5 +1,6 @@
 
 (rule
-  (targets imgui_sys.ml imgui_sys.mli)
-  (deps ../bindgen/funs_gen.exe (source_tree ../../vendor/cimgui))
-  (action (run ../bindgen/funs_gen.exe -d .)))
+  (with-stdout-to "imgui_sys.ml" (run "../bindgen/funs_stubgen_driver.exe" -ml)))
+
+(rule
+  (with-stdout-to "imgui_sys.c" (run "../bindgen/funs_stubgen_driver.exe" -c)))

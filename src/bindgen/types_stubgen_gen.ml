@@ -49,144 +49,13 @@ module Str_ = struct
     try_at 0
 end
 
-type dep =
-  | Dep_decl of string
-  | Dep_def of string
-
-(* graph of types, in dependency order *)
-module Ty_g : sig
-  type t
-  type ml_names = {decl: string; def: string option}
-  val create : unit -> t
-  val find_ml_names : t -> string -> ml_names option
-  val add_decl : t -> string -> ml_name:string -> code:(string*dep list) lazy_t-> unit
-  val add_def : t -> string -> ml_name:string -> code:(string*dep list) lazy_t -> unit
-  val sorted : t -> string list (* sorted in dependency order *)
-end = struct
-  type ml_names = {decl: string; def: string option}
-  type node = {
-    code: (string*dep list) lazy_t;
-    ml_name: string;
-    mutable seen: bool;
-  }
-  type t = {
-    tbl_decl: (string, node) Hashtbl.t;
-    tbl_def: (string, node) Hashtbl.t;
-  }
-
-  let find_ml_names self n =
-    try
-      let decl = (Hashtbl.find self.tbl_decl n).ml_name in
-      let def =
-        try Some (Hashtbl.find self.tbl_def n).ml_name with Not_found -> None in
-      Some {decl; def}
-    with Not_found -> None
-
-  let create () : t =
-    { tbl_decl=Hashtbl.create 32;
-      tbl_def=Hashtbl.create 32;
-    }
-
-  let add_decl self name ~ml_name ~code =
-    Printf.eprintf "graph.add-decl %s\n%!" name;
-    assert (not @@ Hashtbl.mem self.tbl_decl name);
-    let n = {code;ml_name; seen=false} in
-    Hashtbl.add self.tbl_decl name n
-
-  let add_def self name ~ml_name ~code =
-    Printf.eprintf "graph.add-def %s\n%!" name;
-    assert (Hashtbl.mem self.tbl_decl name);
-    assert (not @@ Hashtbl.mem self.tbl_def name);
-    let n = {code;ml_name; seen=false} in
-    Hashtbl.add self.tbl_def name n
-
-  let sorted self : string list =
-    let out = ref [] in
-    let rec traverse _name node =
-     if not node.seen then (
-       node.seen <- true;
-       let code, deps = Lazy.force node.code in
-       (* add dependencies first *)
-       List.iter
-         (function
-           | Dep_decl n ->
-             begin match Hashtbl.find self.tbl_decl n with
-             | exception Not_found -> ()
-             | node -> traverse n node
-             end
-           | Dep_def n ->
-             begin match Hashtbl.find self.tbl_def n with
-             | exception Not_found -> ()
-             | node -> traverse n node
-             end
-         )
-         deps;
-       out := code :: !out;
-     )
-    in
-    Hashtbl.iter traverse self.tbl_decl;
-    Hashtbl.iter traverse self.tbl_def;
-    List.rev !out
-end
-
 let () =
-  let tydefs = Yojson.Safe.from_file path_json_typedefs |> JU.to_assoc in
-  let graph = Ty_g.create() in
-
-  (* translate a type *)
-  let parse_ty s =
-    (* in_ptr: did we go through a pointer, nullifying the need for the def
-       fdef: if true, follow typedefs *)
-    let rec try_prim ~in_ptr ~fdef s =
-      match s with
-      | "unsigned char" -> "uchar", []
-      | "unsigned short" -> "ushort", []
-      | "unsigned int" -> "uint", []
-      | "int" -> "int", []
-      | "short" -> "short", []
-      | "char" -> "char", []
-      | "float" -> "float", []
-      | "double" -> "double", []
-      | "bool" -> "bool", []
-      | "const char*" -> "string", []
-      | "void*" | "const void*" -> "voidp", []
-      | s when s.[String.length s-1] = '*' ->
-        let s = String.sub s 0 (String.length s-1) in
-        let ty,  deps = expand_ty ~in_ptr:true ~fdef s in
-        spf "(ptr %s)" ty, deps
-      | s when Str_.prefix "ImVector_" s ->
-        (* TODO: type annotation *)
-        spf "(abstract ~name:%S ~size:%d ~alignment:8 : unit abstract typ)" s (3 * 8),
-        []
-      | s when Str_.prefix "const " s ->
-        (* drop const *)
-        let lenc = String.length "const " in
-        expand_ty ~in_ptr ~fdef (String.sub s lenc (String.length s-lenc))
-      | s when Str_.prefix "struct " s ->
-        (* drop struct *)
-        let lenc = String.length "struct " in
-        expand_ty ~in_ptr ~fdef (String.sub s lenc (String.length s-lenc))
-      | _ -> lookup_ty ~in_ptr s
-    and expand_ty ~in_ptr ~fdef s =
-      if fdef then
-        match List.assoc s tydefs |> JU.to_string with
-        | s2 -> try_prim ~in_ptr ~fdef:false s2
-        | exception Not_found -> try_prim ~in_ptr ~fdef:false s
-      else try_prim ~in_ptr ~fdef s
-    and lookup_ty ~in_ptr s =
-      (* TODO:
-
-         use the type declaration anyway, but depend on def if it's available
-         and if [in_ptr=false]
-         *)
-      match Ty_g.find_ml_names graph s with
-      | Some n -> n.decl, [if in_ptr then Dep_decl s else Dep_def s]
-      | None ->
-        Printf.eprintf "cannot find name %S" s;
-        failwith "cannot translate"
-    in
-    expand_ty ~fdef:true ~in_ptr:false s
+  let tydefs =
+    Yojson.Safe.from_file path_json_typedefs |> JU.to_assoc
+    |> List.map (fun (a,b) -> a, JU.to_string b)
   in
+  let graph = Ty_g.create ~tydefs () in
+
 
   let j = Yojson.Safe.from_file path_json_enums_structs in
   pfl "open Ctypes";
@@ -206,7 +75,7 @@ let () =
       let c_cstors = List.map (JU.member "name" %> JU.to_string) args in
       let ml_cstors = List.map (Str_.rsplit_on_char '_') c_cstors in
       bpfl "  type t = %s" (String.concat " | " ml_cstors);
-      bpfl "  let t : t typ = enum %S [" name;
+      bpfl "  let t : t typ = enum ~typedef:true %S [" name;
       List.iter2
         (fun ml_c c_c ->
            bpfl "    (%s, constant %S int64_t);" ml_c c_c)
@@ -215,7 +84,7 @@ let () =
       bpfl "end";
       Buffer.contents buf, []
     ) in
-    Ty_g.add graph name ~code ~ml_name;
+    Ty_g.add_decl graph name ~code ~ml_name;
   in
   (* declare as opaque *)
   let handle_opaque name =
@@ -229,7 +98,7 @@ let () =
       bpfl "end";
       Buffer.contents buf, []
     ) in
-    Ty_g.add graph name ~ml_name ~code;
+    Ty_g.add_decl graph name ~ml_name ~code;
   in
   let handle_struct_normal name args : unit =
     Printf.eprintf "handle struct normal %s\n%!" name;
@@ -244,12 +113,12 @@ let () =
       bpfl "end";
       Buffer.contents buf, !deps
     ) in
-    Ty_g.add graph name ~code ~ml_name;
+    Ty_g.add_decl graph name ~code ~ml_name;
     (* second, define the struct *)
     let ml_name = spf "%s.t" name in
     let code = lazy (
       Buffer.clear buf;
-      let deps = ref [name] in
+      let deps = ref [Ty_g.Dep_decl name] in
       bpfl "module %s = struct" name;
       bpfl "  include Decl_%s" name;
       List.iter
@@ -260,12 +129,12 @@ let () =
              (* array! *)
              let f_name = Str_.lsplit_on_char '[' f_name in
              let f_size = JU.member "size" p |> JU.to_int in
-             let f_ty, deps' = parse_ty f_type in
+             let f_ty, deps' = Ty_g.parse_ty graph f_type in
              deps := deps' @ !deps;
              let f_ty = spf "(array %d %s)" f_size f_ty in
              bpfl "  let f_%s = field t %S %s" f_name f_name f_ty;
            ) else (
-             let f_ty, deps' = parse_ty f_type in
+             let f_ty, deps' = Ty_g.parse_ty graph f_type in
              deps := deps' @ !deps;
              bpfl "  let f_%s = field t %S %s" f_name f_name f_ty;
            )
@@ -275,7 +144,7 @@ let () =
       bpfl "end";
       Buffer.contents buf, !deps
     ) in
-    Ty_g.add graph ("$$def-"^name) ~code ~ml_name;
+    Ty_g.add_def graph ("$$def-"^name) ~code ~ml_name;
   in
   let handle_struct name args =
     let args = JU.to_list args in
@@ -285,7 +154,7 @@ let () =
            let f_name = JU.member "name" p |> JU.to_string in
            let f_type = JU.member "type" p |> JU.to_string in
            (* deref if needed *)
-           let f_type' = try List.assoc f_type tydefs |> JU.to_string with _ -> f_type in
+           let f_type' = try List.assoc f_type tydefs with _ -> f_type in
            (* avoid: unions, function pointers *)
            f_name = "" || Str_.contains "(*)" f_type || Str_.contains "(*)" f_type')
         args
@@ -312,4 +181,6 @@ let () =
     (fun code -> print_endline code)
     (Ty_g.sorted graph);
   pf "end;;\n%!";
+  Printf.eprintf "store types in types.data\n%!";
+  Ty_g.to_file graph "types.data";
   ()
