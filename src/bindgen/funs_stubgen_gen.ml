@@ -46,6 +46,9 @@ let () =
       bpfl " returning (%s))" ty;
       print_endline @@ Buffer.contents buf
     with e ->
+      pfl "";
+      pfl "(* skip definition of %s *)" cname;
+      pfl "";
       Printf.eprintf "skip definition of %s: error %s\n%!"
         cname (Printexc.to_string e);
       ()

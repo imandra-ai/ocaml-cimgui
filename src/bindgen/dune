@@ -68,7 +68,9 @@
 
 ; generate the functorized signatures
 (rule
-  (with-stdout-to "funs_ffi.ml" (run "./funs_stubgen_gen.exe")))
+  (deps ./funs_stubgen_gen.exe types.data)
+  (action
+   (with-stdout-to "funs_ffi.ml" (run "./funs_stubgen_gen.exe"))))
 
 (executable
   (name funs_stubgen_driver)

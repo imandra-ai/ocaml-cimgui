@@ -1,6 +1,66 @@
 
+(library
+  (name imgui_sys)
+  (public_name imgui.sys)
+  (modules imgui_sys)
+  (foreign_stubs
+    (language c)
+    ;(flags -I . -lcimgui)
+    (names imgui_sys_stubs))
+  ;(c_flags -I ../../vendor/cimgui/)
+  ;(foreign_archives cimgui)
+  (install_c_headers cimgui)
+  ;(static_only)
+  ;(c_library_flags -L. -lcimgui)
+  (libraries ctypes ctypes.stubs)
+  (flags :standard -warn-error -a+8 -w -9))
+
+(install
+  (section lib)
+  (files dllcimgui.so))
+
+(rule
+  (targets cimgui)
+  (action (run ln -s ../../vendor/cimgui cimgui)))
+
+(rule
+ (targets cimgui.h dllcimgui.so) ; libcimgui.a) ; dllcimgui.so
+ (deps cimgui)
+ (action
+   (progn
+     (run make -j 4 -C cimgui)
+     (run cp "cimgui/cimgui.h" .)
+     (run cp "cimgui/cimgui.so" dllcimgui.so)
+     ;(run cp "build/cimgui.so" dllcimgui.so)
+     )))
+
+; NOTE: try to use `foreign_library`
+;(foreign_library
+; (archive_name cimgui)
+; (language cxx)
+; (names cimgui imgui imgui_demo
+;        imgui_draw
+;        imgui_widgets)
+; (include_dir cimgui/ cimgui/imgui))
+
+; NOTE: try to build by hand using cmake
+; (rule
+;  (targets cimgui.h libcimgui.a) ; dllcimgui.so
+;  (deps (source_tree ../../vendor/cimgui))
+;  (action
+;    (progn
+;      (run cp "../../vendor/cimgui/cimgui.h" cimgui.h)
+;      (run mkdir -p "build")
+;      (chdir build
+;        (progn
+;         (run cmake -DIMGUI_STATIC=1 -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" "../../../vendor/cimgui/")
+;         (run make -j 4)))
+;      (run cp "build/cimgui.a" libcimgui.a)
+;      ;(run cp "build/cimgui.so" dllcimgui.so)
+;      )))
+
 (rule
   (with-stdout-to "imgui_sys.ml" (run "../bindgen/funs_stubgen_driver.exe" -ml)))
 
 (rule
-  (with-stdout-to "imgui_sys.c" (run "../bindgen/funs_stubgen_driver.exe" -c)))
+  (with-stdout-to "imgui_sys_stubs.c" (run "../bindgen/funs_stubgen_driver.exe" -c)))

@@ -13,9 +13,7 @@
   (tags (gui bindings imgui "dear imgui"))
   (depends
     (yojson (and :build (>= "1.6")))
-    ctypes)
-)
-
-
+    (conf-cmake :build)
+    ctypes))
 
 
