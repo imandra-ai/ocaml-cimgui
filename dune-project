@@ -4,8 +4,8 @@
 (version 0.1)
 (generate_opam_files true)
 (license MIT)
-(source (github c-cube/ocaml-imgui))
-(homepage https://github.com/c-cube/imgui)
+(source (github aestheticintegration/ocaml-cimgui))
+(homepage https://github.com/aestheticintegration/ocaml-cimgui)
 
 (package
   (name imgui)

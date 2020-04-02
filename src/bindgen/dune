@@ -30,7 +30,20 @@
   (libraries stubs_types ctypes ctypes.stubs ctypes.foreign))
 
 (rule
-  (with-stdout-to "imgui-types.c" (run ./stubs_types_gen.exe)))
+  (with-stdout-to "imgui-types-stubgen.c" (run ./stubs_types_gen.exe)))
+
+; Stubgen, phase 2
+; C executable that checks struct offsets and outputs ML file
+(rule
+  (targets types_stubgen.exe)
+  (deps (:types_stubgen ./imgui-types-stubgen.c)
+        (source_tree ../../vendor/cimgui/))
+  (action (bash "\
+ %{cc} %{types_stubgen} \
+  -I %{ocaml_where} \
+  -I `dirname %{lib:ctypes:ctypes_cstubs_internals.h}` \
+  -I ../../vendor/cimgui/generator/output/ \
+  -o %{targets}")))
 
 (executable
   (name funs_gen)

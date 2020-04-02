@@ -1,6 +1,7 @@
 
 let prelude = {|
-  #include "imgui"
+  #include "cimgui.h"
+  #include "cimgui_impl.h"
   |}
 
 let () =
