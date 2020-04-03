@@ -39,6 +39,7 @@
 (foreign_library
  (archive_name cimgui)
  (language cxx)
+ (include_dirs imgui)
  (names cimgui))
 
 ; NOTE: try to build by hand using cmake
