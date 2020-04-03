@@ -15,6 +15,7 @@ let is_upper c = c = Char.uppercase_ascii c
 let () =
   let j = Yojson.Safe.from_file path_json in
   Printf.eprintf "parsed json\n%!";
+  Ty_g.funptr := "let open Ctypes in static_funptr"; (* use `fn` rather than `static_funptr` for function pointers *)
   (* load type definitions *)
   let graph = Ty_g.of_file "types.data" in
 
@@ -37,7 +38,7 @@ let () =
       let ret, _ = Ty_g.parse_ty graph ty_ret in
       pfl "  let %s = foreign %S (void @-> returning %s)" ml_name cname ret;
     with e ->
-      pfl "  let _f_%s = [`Skipped]\n  (* omitted: constant %s: %s *)"
+      pfl "  let _f_%s = [`Skipped]\n  (* omitted: constant %s:\n    %s *)"
         (mk_ml_name cname) cname (Printexc.to_string e);
   in
   let handle_def_fun cname ty_args ty_ret =
@@ -48,16 +49,17 @@ let () =
       List.iter
         (fun arg ->
            let ty = JU.member "type" arg |> JU.to_string in
-           let ty, _ = Ty_g.parse_ty graph ty in
-           bpf "(%s) @-> " ty)
+           let ty', _ = Ty_g.parse_ty graph ty in
+           if String.contains ty '[' || Str_.contains ~sub:"array" ty' then (
+             failwith @@ spf "contains array parameter in %s" ty;
+           );
+           bpf "(%s) @-> " ty')
         ty_args;
       let ty, _ = Ty_g.parse_ty graph ty_ret in
       bpfl " returning (%s))" ty;
       print_endline @@ Buffer.contents buf
     with e ->
-      pfl "";
       pfl "  (* skip definition of %s:\n  %s *)" cname (Printexc.to_string e);
-      pfl "";
       ()
   in
 

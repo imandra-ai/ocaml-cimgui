@@ -4,7 +4,8 @@
 (library
   (name ty_g)
   (flags :standard -warn-error -a+8)
-  (modules ty_g))
+  (wrapped false)
+  (modules ty_g str_))
 
 ; generate the stubs for the types
 (executable

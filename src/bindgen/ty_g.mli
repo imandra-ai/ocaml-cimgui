@@ -13,5 +13,10 @@ val add_def : t -> string -> ml_name:string -> code:(string*dep list) lazy_t -> 
 val sorted : t -> string list (* sorted in dependency order *)
 val parse_ty : t -> string -> string * dep list
 
+val def_unions : string
+
 val to_file : t -> string -> unit
 val of_file : string -> t
+
+(** Name of ctypes function to use to represent function pointers *)
+val funptr : string ref

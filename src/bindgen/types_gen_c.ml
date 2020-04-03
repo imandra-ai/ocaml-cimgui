@@ -4,6 +4,9 @@ let prelude = {|
   //#include "imgui.h"
   #include "cimgui.h"
   #include "cimgui_impl.h"
+  union anon_union1 {
+    int val_i; float val_f; void* val_p;
+  };
   |}
 
 let () =

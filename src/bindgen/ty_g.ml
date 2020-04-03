@@ -1,43 +1,6 @@
-module Str_ = struct
-  let lsplit_on_char c s =
-    try
-      (* find `c`*)
-      let i = String.index s c in
-      String.sub s 0 i
-    with _ -> s
-
-  let rsplit_on_char c s =
-    try
-      (* find `c` that is not trailing *)
-      let i = String.rindex_from s (String.length s-2) c in
-      String.sub s (i+1) (String.length s-i-1)
-    with _ -> s
-
-  let prefix s1 s2 =
-    String.length s2 >= String.length s1 &&
-    try for i=0 to String.length s1-1 do
-        if s1.[i] <> s2.[i] then raise Exit;
-      done; true
-    with Exit -> false
-
-  let contains_at_ ~sub i s j ~len =
-    let rec check k =
-      if k = len
-      then true
-      else sub.[i+k] = s.[j+k] && check (k+1)
-    in
-    j+len <= String.length s && check 0
-
-  let contains s1 s2 =
-    let rec try_at i =
-      i + String.length s1 <= String.length s2 &&
-      (contains_at_ ~sub:s1 0 s2 i ~len:(String.length s1) ||
-       try_at (i+1))
-    in
-    try_at 0
-end
 
 let spf = Printf.sprintf
+let funptr = ref "static_funptr"
 
 type dep =
   | Dep_decl of string
@@ -117,6 +80,57 @@ let of_file f: t=
   let ic = open_in f in
   Marshal.from_channel ic
 
+(* NOTE: handle the few cases here *)
+let tr_fundef = function
+  | "const char*(*)(void* user_data)" ->
+    spf "(%s @@ ptr void @-> returning string)" !funptr, []
+  | "bool(*)(void* data,int idx,const char** out_text)" ->
+    spf "(%s @@ ptr void @-> int \
+     @-> ptr string @-> returning bool)" !funptr, []
+  | "float(*)(void* data,int idx)" ->
+    spf "(%s @@ ptr void @-> int @-> returning float)" !funptr, []
+  | "char*(*)(void* user_data)" ->
+    spf "(%s @@ ptr void @-> returning string)"!funptr, []
+  | "void(*)(void* user_data,const char* text)" ->
+    spf "(%s @@ ptr void @-> string @-> returning void)"!funptr, []
+  | "void(*)(int x,int y)" ->
+    spf "(%s @@ int @-> int @-> returning void)"!funptr, []
+  | "void(*)(const ImDrawList* parent_list,const ImDrawCmd* cmd);" ->
+    spf "(%s @@ ptr Decl_ImDrawList.t @-> ptr Decl_ImDrawCmd.t @-> \
+     returning void)"!funptr, [Dep_decl "ImDrawList"; Dep_decl "ImDrawCmd"]
+  | "int(*)(ImGuiInputTextCallbackData *data);" ->
+    spf "(%s @@ ptr Decl_ImGuiInputTextCallbackData.t @-> \
+     returning int)"!funptr, [Dep_decl "ImGuiInputTextCallbackData";]
+  | "void*(*)(size_t sz,void* user_data)" ->
+    spf "(%s @@ size_t @-> ptr void @-> \
+     returning (ptr void))"!funptr, []
+  | "void(*)(void* ptr,void* user_data)" ->
+    spf "(%s @@ ptr void @-> ptr void @-> \
+     returning void)"!funptr, []
+  | "void(*)(ImGuiSizeCallbackData* data);" ->
+    spf "(%s @@ ptr Decl_ImGuiSizeCallbackData.t @-> \
+     returning void)"!funptr, [Dep_decl "ImGuiSizeCallbackData"]
+  | s ->
+    failwith @@ spf "cannot translate function pointer type %s"
+      (String.map (function '*' -> '$'|c->c)s) (* a bit of escaping *)
+
+let def_unions = {|
+module Union1 = struct
+  type t = [`Union1] Ctypes.union
+  let t : t typ = union "anon_union1"
+  let val_i = field t "val_i" int
+  let val_f = field t "val_f" float
+  let val_p = field t "val_p" (ptr void)
+  let () = seal t
+end
+|}
+
+(* NOTE: handle the few cases here *)
+let tr_union = function
+  | "union { int val_i; float val_f; void* val_p;}" ->
+    "Union1.t", []
+  | s -> failwith @@ spf "cannot translate union %s" s
+
 (* translate a type *)
 let parse_ty (self:t) s : _ * dep list =
   (* in_ptr: did we go through a pointer, nullifying the need for the def
@@ -141,9 +155,10 @@ let parse_ty (self:t) s : _ * dep list =
       let ty,  deps = expand_ty ~in_ptr:true ~fdef s in
       spf "(ptr %s)" ty, deps
     | s when Str_.prefix "ImVector_" s ->
-      (* TODO: type annotation *)
       spf "(abstract ~name:%S ~size:%d ~alignment:8 : unit abstract typ)" s (3 * 8),
       []
+    | s when Str_.prefix "union" s ->
+      tr_union s
     | s when s.[String.length s-1] = ']' ->
       let i = String.rindex s '[' in
       let len =
@@ -171,10 +186,10 @@ let parse_ty (self:t) s : _ * dep list =
   and lookup_ty ~in_ptr s =
     match find_ml_names self s with
     | Some n -> n.decl, [if in_ptr then Dep_decl s else Dep_def s]
+    | None when Str_.contains "(*)" s ->
+      tr_fundef s
     | None ->
       Printf.eprintf "cannot find name %S" s;
-      let ty =
-        if Str_.contains "(*)" s then "<fun ptr type>" else s in
-      failwith @@ spf "cannot translate type: %s" ty
+      failwith @@ spf "cannot translate type: %s" s
   in
   expand_ty ~fdef:true ~in_ptr:false s
