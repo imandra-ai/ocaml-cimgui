@@ -125,7 +125,8 @@ let () =
   in
   (* NOTE: missing types *)
   List.iter (handle_opaque "missing type decl")
-    ["ImDrawListSharedData"; "ImDrawIdx"; "ImWchar"];
+    ["ImDrawListSharedData"; "ImDrawIdx"; "ImWchar"; "ImGuiContext";
+    ];
   print_endline Ty_g.def_unions;
   (* traverse [j] *)
   handle_enums (JU.to_assoc @@ JU.member "enums" j);

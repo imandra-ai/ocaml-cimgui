@@ -12,10 +12,13 @@ let path_json = "../../vendor/cimgui/generator/output/definitions.json"
 
 let is_upper c = c = Char.uppercase_ascii c
 
+(* use `fn` rather than `static_funptr` for function pointers *)
+let funptr =
+  "let open Ctypes in static_funptr"
+
 let () =
   let j = Yojson.Safe.from_file path_json in
   Printf.eprintf "parsed json\n%!";
-  Ty_g.funptr := "let open Ctypes in static_funptr"; (* use `fn` rather than `static_funptr` for function pointers *)
   (* load type definitions *)
   let graph = Ty_g.of_file "types.data" in
 
@@ -35,7 +38,7 @@ let () =
     let ml_name = mk_ml_name cname in
     try
       let ty_ret = JU.member "ret" d |> JU.to_string in
-      let ret, _ = Ty_g.parse_ty graph ty_ret in
+      let ret, _ = Ty_g.parse_ty ~funptr graph ty_ret in
       pfl "  let %s = foreign %S (void @-> returning %s)" ml_name cname ret;
     with e ->
       pfl "  let _f_%s = [`Skipped]\n  (* omitted: constant %s:\n    %s *)"
@@ -49,13 +52,15 @@ let () =
       List.iter
         (fun arg ->
            let ty = JU.member "type" arg |> JU.to_string in
-           let ty', _ = Ty_g.parse_ty graph ty in
+           (* translate type, where "*" is an optional ptr *)
+           let ty', _ = Ty_g.parse_ty ~funptr ~ptr:"ptr_opt" graph ty in
+           (* FIXME: replace array with ptr *)
            if String.contains ty '[' || Str_.contains ~sub:"array" ty' then (
              failwith @@ spf "contains array parameter in %s" ty;
            );
            bpf "(%s) @-> " ty')
         ty_args;
-      let ty, _ = Ty_g.parse_ty graph ty_ret in
+      let ty, _ = Ty_g.parse_ty ~funptr graph ty_ret in
       bpfl " returning (%s))" ty;
       print_endline @@ Buffer.contents buf
     with e ->
@@ -77,6 +82,8 @@ let () =
         if cstor then JU.member "stname" d |> JU.to_string
         else JU.member "ret" d |> JU.to_string
       in
+      (* FIXME: handle constructors *)
+      if cstor then pfl "  (* skip cstor %s *)" name else
       handle_def_fun cname ty_args ty_ret
     )
   in

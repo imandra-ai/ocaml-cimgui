@@ -1,6 +1,5 @@
 
 let spf = Printf.sprintf
-let funptr = ref "static_funptr"
 
 type dep =
   | Dep_decl of string
@@ -81,35 +80,35 @@ let of_file f: t=
   Marshal.from_channel ic
 
 (* NOTE: handle the few cases here *)
-let tr_fundef = function
+let tr_fundef ~funptr = function
   | "const char*(*)(void* user_data)" ->
-    spf "(%s @@ ptr void @-> returning string)" !funptr, []
+    spf "(%s @@ ptr void @-> returning string)" funptr, []
   | "bool(*)(void* data,int idx,const char** out_text)" ->
     spf "(%s @@ ptr void @-> int \
-     @-> ptr string @-> returning bool)" !funptr, []
+     @-> ptr string @-> returning bool)" funptr, []
   | "float(*)(void* data,int idx)" ->
-    spf "(%s @@ ptr void @-> int @-> returning float)" !funptr, []
+    spf "(%s @@ ptr void @-> int @-> returning float)" funptr, []
   | "char*(*)(void* user_data)" ->
-    spf "(%s @@ ptr void @-> returning string)"!funptr, []
+    spf "(%s @@ ptr void @-> returning string)"funptr, []
   | "void(*)(void* user_data,const char* text)" ->
-    spf "(%s @@ ptr void @-> string @-> returning void)"!funptr, []
+    spf "(%s @@ ptr void @-> string @-> returning void)"funptr, []
   | "void(*)(int x,int y)" ->
-    spf "(%s @@ int @-> int @-> returning void)"!funptr, []
+    spf "(%s @@ int @-> int @-> returning void)"funptr, []
   | "void(*)(const ImDrawList* parent_list,const ImDrawCmd* cmd);" ->
     spf "(%s @@ ptr Decl_ImDrawList.t @-> ptr Decl_ImDrawCmd.t @-> \
-     returning void)"!funptr, [Dep_decl "ImDrawList"; Dep_decl "ImDrawCmd"]
+     returning void)"funptr, [Dep_decl "ImDrawList"; Dep_decl "ImDrawCmd"]
   | "int(*)(ImGuiInputTextCallbackData *data);" ->
     spf "(%s @@ ptr Decl_ImGuiInputTextCallbackData.t @-> \
-     returning int)"!funptr, [Dep_decl "ImGuiInputTextCallbackData";]
+     returning int)"funptr, [Dep_decl "ImGuiInputTextCallbackData";]
   | "void*(*)(size_t sz,void* user_data)" ->
     spf "(%s @@ size_t @-> ptr void @-> \
-     returning (ptr void))"!funptr, []
+     returning (ptr void))"funptr, []
   | "void(*)(void* ptr,void* user_data)" ->
     spf "(%s @@ ptr void @-> ptr void @-> \
-     returning void)"!funptr, []
+     returning void)"funptr, []
   | "void(*)(ImGuiSizeCallbackData* data);" ->
     spf "(%s @@ ptr Decl_ImGuiSizeCallbackData.t @-> \
-     returning void)"!funptr, [Dep_decl "ImGuiSizeCallbackData"]
+     returning void)"funptr, [Dep_decl "ImGuiSizeCallbackData"]
   | s ->
     failwith @@ spf "cannot translate function pointer type %s"
       (String.map (function '*' -> '$'|c->c)s) (* a bit of escaping *)
@@ -132,7 +131,10 @@ let tr_union = function
   | s -> failwith @@ spf "cannot translate union %s" s
 
 (* translate a type *)
-let parse_ty (self:t) s : _ * dep list =
+let parse_ty
+    ?(funptr="static_funptr")
+    ?(ptr="ptr")
+    (self:t) s : _ * dep list =
   (* in_ptr: did we go through a pointer, nullifying the need for the def
      fdef: if true, follow typedefs *)
   let rec try_prim ~in_ptr ~fdef s =
@@ -153,7 +155,7 @@ let parse_ty (self:t) s : _ * dep list =
     | s when s.[String.length s-1] = '*' ->
       let s = String.sub s 0 (String.length s-1) in
       let ty,  deps = expand_ty ~in_ptr:true ~fdef s in
-      spf "(ptr %s)" ty, deps
+      spf "(%s %s)" ptr ty, deps
     | s when Str_.prefix "ImVector_" s ->
       spf "(abstract ~name:%S ~size:%d ~alignment:8 : unit abstract typ)" s (3 * 8),
       []
@@ -186,8 +188,8 @@ let parse_ty (self:t) s : _ * dep list =
   and lookup_ty ~in_ptr s =
     match find_ml_names self s with
     | Some n -> n.decl, [if in_ptr then Dep_decl s else Dep_def s]
-    | None when Str_.contains "(*)" s ->
-      tr_fundef s
+    | None when Str_.contains ~sub:"(*)" s ->
+      tr_fundef ~funptr s
     | None ->
       Printf.eprintf "cannot find name %S" s;
       failwith @@ spf "cannot translate type: %s" s
