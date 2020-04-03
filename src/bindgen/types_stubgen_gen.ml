@@ -142,7 +142,7 @@ let () =
              let f_ty, deps' = Ty_g.parse_ty graph f_type in
              deps := deps' @ !deps;
              bpfl "  let %s = field t %S %s" (mk_ml_name f_name) f_name f_ty;
-           )
+           );
         )
         args;
       bpfl "  let () = seal t";

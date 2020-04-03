@@ -133,16 +133,26 @@ let parse_ty (self:t) s : _ * dep list =
     | "double" -> "double", []
     | "bool" -> "bool", []
     | "const char*" -> "string", []
+    | "size_t" -> "size_t", []
+    | "void" -> "void", []
     | "void*" | "const void*" -> "voidp", []
     | s when s.[String.length s-1] = '*' ->
       let s = String.sub s 0 (String.length s-1) in
       let ty,  deps = expand_ty ~in_ptr:true ~fdef s in
       spf "(ptr %s)" ty, deps
-    | "void" -> "void", []
     | s when Str_.prefix "ImVector_" s ->
       (* TODO: type annotation *)
       spf "(abstract ~name:%S ~size:%d ~alignment:8 : unit abstract typ)" s (3 * 8),
       []
+    | s when s.[String.length s-1] = ']' ->
+      let i = String.rindex s '[' in
+      let len =
+        try int_of_string @@ String.sub s (i+1) (String.length s-i-2)
+        with _ ->
+          failwith @@ spf "cannot extract len from %s" s
+      in
+      let ty, deps = expand_ty ~in_ptr ~fdef (String.sub s 0 i) in
+      spf "(array %d %s)" len ty, deps
     | s when Str_.prefix "const " s ->
       (* drop const *)
       let lenc = String.length "const " in
@@ -156,13 +166,15 @@ let parse_ty (self:t) s : _ * dep list =
     if fdef then
       match List.assoc s self.tydefs with
       | s2 -> try_prim ~in_ptr ~fdef:false s2
-      | exception Not_found -> try_prim ~in_ptr ~fdef:false s
+      | exception Not_found -> try_prim ~in_ptr ~fdef s
     else try_prim ~in_ptr ~fdef s
   and lookup_ty ~in_ptr s =
     match find_ml_names self s with
     | Some n -> n.decl, [if in_ptr then Dep_decl s else Dep_def s]
     | None ->
       Printf.eprintf "cannot find name %S" s;
-      failwith "cannot translate"
+      let ty =
+        if Str_.contains "(*)" s then "<fun ptr type>" else s in
+      failwith @@ spf "cannot translate type: %s" ty
   in
   expand_ty ~fdef:true ~in_ptr:false s

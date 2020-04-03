@@ -22,25 +22,28 @@ let () =
   let bpf fmt = Printf.bprintf buf fmt in
   let bpfl fmt = Printf.kbprintf (fun buf -> Buffer.add_char buf '\n') buf fmt in
 
+  let mk_ml_name cname = if is_upper cname.[0] then "f_" ^ cname else cname in
+
   pfl "open Ctypes";
   pfl "module Types = Imgui_generated_types.Make(Generated_types)";
   pfl "module Make (F : Cstubs.FOREIGN) = struct";
   pfl "  open F";
   pfl "  open Types";
 
-  let handle_def_const cname =
-    Printf.eprintf "handle constant def for cimguiname %s\n%!" cname;
-    pfl "";
-    pfl " (* omitted: constant %s *)" cname;
-    (* TODO *)
-    pfl "";
+  let handle_def_const cname d =
+    let ml_name = mk_ml_name cname in
+    try
+      let ty_ret = JU.member "ret" d |> JU.to_string in
+      let ret, _ = Ty_g.parse_ty graph ty_ret in
+      pfl "  let %s = foreign %S (void @-> returning %s)" ml_name cname ret;
+    with e ->
+      pfl "  let _f_%s = [`Skipped]\n  (* omitted: constant %s: %s *)"
+        (mk_ml_name cname) cname (Printexc.to_string e);
   in
   let handle_def_fun cname ty_args ty_ret =
-    Printf.eprintf "handle fun def for cimguiname %s (%d args)\n%!"
-      cname (List.length ty_args);
     try
       Buffer.clear buf;
-      let ml_name = if is_upper cname.[0] then "f_" ^ cname else cname in
+      let ml_name = mk_ml_name cname in
       bpf "  let %s = foreign %S (" ml_name cname;
       List.iter
         (fun arg ->
@@ -53,10 +56,8 @@ let () =
       print_endline @@ Buffer.contents buf
     with e ->
       pfl "";
-      pfl "(* skip definition of %s *)" cname;
+      pfl "  (* skip definition of %s:\n  %s *)" cname (Printexc.to_string e);
       pfl "";
-      Printf.eprintf "skip definition of %s: error %s\n%!"
-        cname (Printexc.to_string e);
       ()
   in
 
@@ -65,13 +66,13 @@ let () =
     Printf.eprintf "handle def %s for cimguiname %s\n%!" name cname;
     let ty_args = JU.member "argsT" d |> JU.to_list in
     if ty_args=[] then (
-      handle_def_const cname
+      handle_def_const cname d
     ) else (
       let cstor =
         try JU.member "constructor" d |> JU.to_bool with _ -> false in
       (* constructor=true means ty_ret is the struct itself *)
       let ty_ret =
-        if cstor then name
+        if cstor then JU.member "stname" d |> JU.to_string
         else JU.member "ret" d |> JU.to_string
       in
       handle_def_fun cname ty_args ty_ret
