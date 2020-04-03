@@ -1,0 +1,4 @@
+
+(executable
+  (name example)
+  (libraries imgui.sys imgui.sdl2 ctypes tsdl))
