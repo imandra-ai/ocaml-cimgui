@@ -10,6 +10,8 @@ let pfl fmt = Printf.kfprintf (fun oc -> output_char oc '\n') stdout fmt
 let path_json_typedefs = "../../vendor/cimgui/generator/output/typedefs_dict.json"
 let path_json_enums_structs = "../../vendor/cimgui/generator/output/structs_and_enums.json"
 
+let is_upper c = c = Char.uppercase_ascii c
+
 module Str_ = struct
   let lsplit_on_char c s =
     try
@@ -125,6 +127,9 @@ let () =
         (fun p ->
            let f_name = JU.member "name" p |> JU.to_string in
            let f_type = JU.member "type" p |> JU.to_string in
+           let mk_ml_name f_name =
+             if is_upper f_name.[0] then "f_" ^ f_name else f_name
+           in
            if String.contains f_name '[' then (
              (* array! *)
              let f_name = Str_.lsplit_on_char '[' f_name in
@@ -132,11 +137,11 @@ let () =
              let f_ty, deps' = Ty_g.parse_ty graph f_type in
              deps := deps' @ !deps;
              let f_ty = spf "(array %d %s)" f_size f_ty in
-             bpfl "  let f_%s = field t %S %s" f_name f_name f_ty;
+             bpfl "  let %s = field t %S %s" (mk_ml_name f_name) f_name f_ty;
            ) else (
              let f_ty, deps' = Ty_g.parse_ty graph f_type in
              deps := deps' @ !deps;
-             bpfl "  let f_%s = field t %S %s" f_name f_name f_ty;
+             bpfl "  let %s = field t %S %s" (mk_ml_name f_name) f_name f_ty;
            )
         )
         args;

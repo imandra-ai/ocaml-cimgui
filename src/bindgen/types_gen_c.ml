@@ -8,5 +8,5 @@ let prelude = {|
 
 let () =
   print_endline prelude;
-  Cstubs_structs.write_c Format.std_formatter (module Types_stubs_generated.Make);
+  Cstubs_structs.write_c Format.std_formatter (module Imgui_generated_types.Make);
   ()

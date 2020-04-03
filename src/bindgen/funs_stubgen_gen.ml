@@ -10,6 +10,8 @@ let pfl fmt = Printf.kfprintf (fun oc -> output_char oc '\n') stdout fmt
 
 let path_json = "../../vendor/cimgui/generator/output/definitions.json"
 
+let is_upper c = c = Char.uppercase_ascii c
+
 let () =
   let j = Yojson.Safe.from_file path_json in
   Printf.eprintf "parsed json\n%!";
@@ -21,21 +23,25 @@ let () =
   let bpfl fmt = Printf.kbprintf (fun buf -> Buffer.add_char buf '\n') buf fmt in
 
   pfl "open Ctypes";
-  pfl "module Types = Types_stubs_generated.Make(Generated_types)";
+  pfl "module Types = Imgui_generated_types.Make(Generated_types)";
   pfl "module Make (F : Cstubs.FOREIGN) = struct";
   pfl "  open F";
   pfl "  open Types";
 
   let handle_def_const cname =
     Printf.eprintf "handle constant def for cimguiname %s\n%!" cname;
-    () (* TODO *)
+    pfl "";
+    pfl " (* omitted: constant %s *)" cname;
+    (* TODO *)
+    pfl "";
   in
   let handle_def_fun cname ty_args ty_ret =
     Printf.eprintf "handle fun def for cimguiname %s (%d args)\n%!"
       cname (List.length ty_args);
     try
       Buffer.clear buf;
-      bpf "  let f_%s = foreign %S (" cname cname;
+      let ml_name = if is_upper cname.[0] then "f_" ^ cname else cname in
+      bpf "  let %s = foreign %S (" ml_name cname;
       List.iter
         (fun arg ->
            let ty = JU.member "type" arg |> JU.to_string in

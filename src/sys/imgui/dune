@@ -1,2 +1,5 @@
 
 (copy_files ../../../vendor/cimgui/imgui/*.h)
+(copy_files ../../../vendor/cimgui/imgui/misc/*.h)
+(copy_files ../../../vendor/cimgui/imgui/misc/cpp/*.h)
+(copy_files ../../../vendor/cimgui/imgui/misc/freetype/*.h)

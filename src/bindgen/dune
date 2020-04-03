@@ -15,16 +15,17 @@
   (libraries ty_g ctypes.stubs yojson))
 
 (rule
-  (targets types_stubs_generated.ml types.data)
+  (targets imgui_generated_types.ml types.data)
   (action
-   (with-stdout-to types_stubs_generated.ml (run ./types_stubgen_gen.exe))))
+   (with-stdout-to imgui_generated_types.ml (run ./types_stubgen_gen.exe))))
 
 ; stubgen phase 1
 
 ; generated from above
 (library
-  (name types_stubs_generated)
-  (modules types_stubs_generated)
+  (name imgui_generated_types)
+  (public_name imgui.generated_types)
+  (modules imgui_generated_types)
   (modes native)
   (flags :standard -warn-error -a+8)
   (libraries ctypes ctypes.stubs ctypes.foreign))
@@ -34,7 +35,7 @@
   (modules types_gen_c)
   (modes native)
   (flags :standard -warn-error -a+8)
-  (libraries types_stubs_generated ctypes ctypes.stubs ctypes.foreign))
+  (libraries imgui_generated_types ctypes ctypes.stubs ctypes.foreign))
 
 (rule
   (with-stdout-to "imgui-types-stubgen.c" (run ./types_gen_c.exe)))
@@ -70,12 +71,21 @@
 (rule
   (deps ./funs_stubgen_gen.exe types.data)
   (action
-   (with-stdout-to "funs_ffi.ml" (run "./funs_stubgen_gen.exe"))))
+   (with-stdout-to "imgui_generated_funs.ml"
+                   (run "./funs_stubgen_gen.exe"))))
+
+(library
+  (name imgui_generated_funs)
+  (public_name imgui.generated_funs)
+  (libraries ctypes ctypes.stubs imgui.generated_types)
+  (wrapped false)
+  (flags :standard -warn-error -a+8 -w -9)
+  (modules imgui_generated_funs generated_types))
 
 (executable
   (name funs_stubgen_driver)
-  (modules funs_stubgen_driver generated_types funs_ffi)
+  (modules funs_stubgen_driver)
   (modes native)
   (flags :standard -warn-error -a+8 -w -9)
-  (libraries ctypes.foreign ctypes types_stubs_generated))
+  (libraries ctypes.foreign ctypes imgui_generated_types imgui_generated_funs))
 

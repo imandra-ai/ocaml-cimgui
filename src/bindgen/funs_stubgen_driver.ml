@@ -1,6 +1,8 @@
 let prefix = "imgui_stubs"
 
 let c_prelude = {|
+#define const /* empty. dirty hack to silence warnings. */
+
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS 1
 #include "cimgui.h"
 
@@ -15,9 +17,9 @@ let () =
     ] (fun _ -> ()) "stubgen";
   if !genml = !genc then failwith {|specify exactly one of -ml/-c|};
   if !genml then (
-    Cstubs.write_ml Format.std_formatter ~prefix (module Funs_ffi.Make)
+    Cstubs.write_ml Format.std_formatter ~prefix (module Imgui_generated_funs.Make)
   ) else (
     assert !genc;
     print_endline c_prelude;
-    Cstubs.write_c Format.std_formatter ~prefix (module Funs_ffi.Make)
+    Cstubs.write_c Format.std_formatter ~prefix (module Imgui_generated_funs.Make)
   )
