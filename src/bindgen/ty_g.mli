@@ -13,11 +13,12 @@ val add_def : t -> string -> ml_name:string -> code:(string*dep list) lazy_t -> 
 val sorted : t -> string list (* sorted in dependency order *)
 
 val parse_ty :
-  ?funptr:string -> ?ptr:string ->
+  ?funptr:string -> ?ptr_top:string -> ?array_to_ptr:bool ->
   t -> string -> string * dep list
 (** Translate C type to a [ctypes] expression
     @param funptr Name of ctypes function to use to represent function pointers
-    @param ptr Name of ctypes function to use to represent pointers
+    @param ptr_top Name of ctypes function to use to represent the toplevel pointer
+      (default "ptr")
 *)
 
 val def_unions : string

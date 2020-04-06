@@ -44,28 +44,47 @@ let () =
       pfl "  let _f_%s = [`Skipped]\n  (* omitted: constant %s:\n    %s *)"
         (mk_ml_name cname) cname (Printexc.to_string e);
   in
-  let handle_def_fun cname ty_args ty_ret =
-    try
-      Buffer.clear buf;
-      let ml_name = mk_ml_name cname in
-      bpf "  let %s = foreign %S (" ml_name cname;
-      List.iter
-        (fun arg ->
-           let ty = JU.member "type" arg |> JU.to_string in
-           (* translate type, where "*" is an optional ptr *)
-           let ty', _ = Ty_g.parse_ty ~funptr ~ptr:"ptr_opt" graph ty in
-           (* FIXME: replace array with ptr *)
-           if String.contains ty '[' || Str_.contains ~sub:"array" ty' then (
-             failwith @@ spf "contains array parameter in %s" ty;
-           );
-           bpf "(%s) @-> " ty')
-        ty_args;
-      let ty, _ = Ty_g.parse_ty ~funptr graph ty_ret in
-      bpfl " returning (%s))" ty;
-      print_endline @@ Buffer.contents buf
-    with e ->
-      pfl "  (* skip definition of %s:\n  %s *)" cname (Printexc.to_string e);
-      ()
+  let rec handle_def_fun cname d ty_args ?spec_for ty_ret =
+    let vararg = List.mem "isvararg" @@ JU.keys d in
+    if vararg && spec_for=None then (
+      (* specialize for up to 4 args *)
+      for i = 0 to 4 do
+        pfl "  (* specialize variadic %s for %d arguments *)" cname i;
+        handle_def_fun cname d ty_args ~spec_for:i ty_ret
+      done;
+    ) else (
+      try
+        Buffer.clear buf;
+        let ml_name = match spec_for with
+          | None | Some 0 -> mk_ml_name cname
+          | Some n -> spf "%s%d" (mk_ml_name cname) n
+        in
+        bpf "  let %s = foreign %S (" ml_name cname;
+        List.iter
+          (fun arg ->
+             let ty = JU.member "type" arg |> JU.to_string in
+             if vararg && ty = "..." then (
+               (* add n arguments of type string *)
+               let n = match spec_for with Some n -> n | None -> assert false in
+               for _i=1 to n do
+                 bpf "(* varargs spec *) string @-> ";
+               done;
+             ) else (
+               (* translate type, where "*" is an optional ptr and arrays
+                  of fixed size are pointers *)
+               let ty', _ =
+                 Ty_g.parse_ty ~funptr ~array_to_ptr:true ~ptr_top:"ptr_opt" graph ty
+               in
+               bpf "(%s) @-> " ty'
+             ))
+          ty_args;
+        let ty, _ = Ty_g.parse_ty ~funptr graph ty_ret in
+        bpfl " returning (%s))" ty;
+        print_endline @@ Buffer.contents buf
+      with e ->
+        pfl "  (* skip definition of %s:\n  %s *)" cname (Printexc.to_string e);
+        ()
+    )
   in
 
   let handle_def name d : unit =
@@ -84,7 +103,7 @@ let () =
       in
       (* FIXME: handle constructors *)
       if cstor then pfl "  (* skip cstor %s *)" name else
-      handle_def_fun cname ty_args ty_ret
+      handle_def_fun cname d ty_args ty_ret
     )
   in
 

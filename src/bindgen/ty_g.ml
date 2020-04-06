@@ -133,11 +133,13 @@ let tr_union = function
 (* translate a type *)
 let parse_ty
     ?(funptr="static_funptr")
-    ?(ptr="ptr")
+    ?(ptr_top="ptr")
+    ?(array_to_ptr=false)
     (self:t) s : _ * dep list =
   (* in_ptr: did we go through a pointer, nullifying the need for the def
      fdef: if true, follow typedefs *)
   let rec try_prim ~in_ptr ~fdef s =
+    let s = String.trim s in
     match s with
     | "unsigned char" -> "uchar", []
     | "unsigned short" -> "ushort", []
@@ -155,27 +157,33 @@ let parse_ty
     | s when s.[String.length s-1] = '*' ->
       let s = String.sub s 0 (String.length s-1) in
       let ty,  deps = expand_ty ~in_ptr:true ~fdef s in
-      spf "(%s %s)" ptr ty, deps
+      spf "(%s %s)" (if in_ptr then "ptr" else ptr_top) ty, deps
     | s when Str_.prefix "ImVector_" s ->
       spf "(abstract ~name:%S ~size:%d ~alignment:8 : unit abstract typ)" s (3 * 8),
       []
     | s when Str_.prefix "union" s ->
       tr_union s
     | s when s.[String.length s-1] = ']' ->
+      (* convert arrays to pointers or "array" *)
       let i = String.rindex s '[' in
       let len =
         try int_of_string @@ String.sub s (i+1) (String.length s-i-2)
         with _ ->
           failwith @@ spf "cannot extract len from %s" s
       in
-      let ty, deps = expand_ty ~in_ptr ~fdef (String.sub s 0 i) in
-      spf "(array %d %s)" len ty, deps
+      if not in_ptr && array_to_ptr then (
+        let ty, deps = expand_ty ~in_ptr:true ~fdef (String.sub s 0 i) in
+        spf "(ptr %s (* array of len %d *))" ty len, deps
+      ) else (
+        let ty, deps = expand_ty ~in_ptr ~fdef (String.sub s 0 i) in
+        spf "(array %d %s)" len ty, deps
+      )
     | s when Str_.prefix "const " s ->
-      (* drop const *)
+      (* drop const, ctypes ignores it *)
       let lenc = String.length "const " in
       expand_ty ~in_ptr ~fdef (String.sub s lenc (String.length s-lenc))
     | s when Str_.prefix "struct " s ->
-      (* drop struct *)
+      (* drop struct keyword *)
       let lenc = String.length "struct " in
       expand_ty ~in_ptr ~fdef (String.sub s lenc (String.length s-lenc))
     | _ -> lookup_ty ~in_ptr s
