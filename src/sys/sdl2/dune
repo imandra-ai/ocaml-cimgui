@@ -1,0 +1,115 @@
+
+; ========================
+; stubgen for types
+
+(library
+  (name imgui_sdl2_types_f)
+  (public_name imgui.sdl2_types_f)
+  (modules imgui_sdl2_types_f)
+  (flags :standard -warn-error -a+8 -w -9)
+  (libraries ctypes ctypes.stubs))
+
+(executable
+  (name imgui_sdl2_types_stubgen)
+  (modes native)
+  (modules imgui_sdl2_types_stubgen)
+  (libraries ctypes ctypes.stubs imgui_sdl2_types_f))
+
+(rule
+  (with-stdout-to imgui_sdl2_generate_types.c
+                  (run ./imgui_sdl2_types_stubgen.exe)))
+
+; Stubgen, phase 2
+; C executable that checks struct offsets and outputs ML file
+(rule
+  (targets types_stubgen.exe)
+  (deps (:types_stubgen ./imgui_sdl2_generate_types.c)
+        (source_tree ../../vendor/cimgui/))
+  (action (bash "\
+ %{cc} \
+  -I %{ocaml_where} \
+  -I `dirname %{lib:ctypes:ctypes_cstubs_internals.h}` \
+  -I ../../../vendor/cimgui/generator/output/ \
+  -I ../../../vendor/cimgui/imgui/ \
+  `pkg-config --cflags sdl2` \
+  %{types_stubgen} \
+  -o %{targets}")))
+
+
+(rule (with-stdout-to "imgui_sdl2_generated_types.ml"
+                      (run "./types_stubgen.exe")))
+
+
+(library
+  (name imgui_sdl2_generated_types)
+  (public_name imgui.sdl2_generated_types)
+  (modes native)
+  (modules imgui_sdl2_generated_types)
+  (flags :standard -warn-error -a+8 -w -9)
+  (libraries ctypes imgui_sdl2_types_f))
+
+; ===============
+; stubgen for functions
+
+(executable
+  (name imgui_sdl2_ffi_stubgen)
+  (modules imgui_sdl2_ffi_stubgen)
+  (modes native)
+  (flags :standard -warn-error -a+8 -w -9)
+  (libraries yojson ty_g ctypes.foreign ctypes
+             imgui.sdl2_ffi_f imgui.sdl2_generated_types))
+
+(rule
+  (deps ./imgui_sdl2_ffi_stubgen.exe ../../bindgen/types.data)
+  (action
+   (with-stdout-to "imgui_sdl2_generated_funs.ml"
+                   (run "./imgui_sdl2_ffi_stubgen.exe" -ml))))
+
+(rule
+  (deps ./imgui_sdl2_ffi_stubgen.exe ../../bindgen/types.data)
+  (action
+   (with-stdout-to "imgui_sdl2_generated_funs.c"
+                   (run "./imgui_sdl2_ffi_stubgen.exe" -c))))
+
+(library
+  (name imgui_sdl2_ffi_f)
+  (public_name imgui.sdl2_ffi_f)
+  (modules imgui_sdl2_ffi_f)
+  (flags :standard -warn-error -a+8 -w -9)
+  (libraries ctypes ctypes.stubs imgui.sdl2_types_f imgui.sdl2_generated_types))
+
+; main binding
+
+(library
+  (name imgui_sdl2)
+  (public_name imgui.sdl2)
+  (modules imgui_sdl2 imgui_sdl2_generated_funs)
+  (foreign_archives cimgui_imgui_sdl2)
+  (foreign_stubs
+    (language c)
+    (flags (:include cflags))
+    (names imgui_sdl2_generated_funs))
+  (c_library_flags ;--enable-stdcall-fixup -Wl,--print-map
+                   (:include lflags) -lstdc++)
+  (libraries imgui.sys imgui.sdl2_types_f tsdl ctypes ctypes.stubs
+             imgui.sdl2_ffi_f
+             imgui.sdl2_generated_types))
+
+(rule (with-stdout-to cflags
+                      (progn (echo "(")
+                             (run pkg-config --cflags sdl2)
+                             (echo ")"))))
+(rule (with-stdout-to lflags
+                      (progn (echo "(")
+                             (run pkg-config --libs sdl2)
+                             (echo ")"))))
+
+(copy_files ../../../vendor/cimgui/generator/output/*.h)
+(copy_files ../../../vendor/cimgui/imgui/examples/imgui_impl_sdl.cpp)
+
+(foreign_library
+  (archive_name cimgui_imgui_sdl2)
+  (language cxx)
+  (include_dirs ../../../vendor/cimgui/generator/output/ ../../../vendor/cimgui/imgui/)
+  (flags (:include cflags) "-DIMGUI_IMPL_API=extern \"C\" __declspec(dllexport)" -Wl,--kill-at)
+  (names imgui_impl_sdl))

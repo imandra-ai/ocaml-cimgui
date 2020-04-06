@@ -1,7 +1,7 @@
 
-(executable
-  (name example)
+(executables
+  (names example example_sdl)
   (flags :standard -warn-error -a+8)
   (libraries imgui.sys
-             ; imgui.sdl2 ; TODO
+             imgui.sdl2
              ctypes tsdl))

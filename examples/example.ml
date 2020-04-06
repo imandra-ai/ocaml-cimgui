@@ -77,8 +77,11 @@ let () =
     Printf.printf "new frame %d\n%!" i;
 
     I.igText "hello world!";
-    ignore_bool @@ I.igSliderFloat "float slider" (Some my_f) 0. 1. "%.3f" 1.0;
-(*     I.igShowDemoWindow *)
+    let slider_changed =
+      I.igSliderFloat "float slider" (Some my_f) 0. 1. "%.3f" 1.0
+    in
+    if slider_changed then Printf.printf "slider touched! val=%.3f\n%!" !@my_f;
+    (*     I.igShowDemoWindow *)
 
 
     I.igRender();
