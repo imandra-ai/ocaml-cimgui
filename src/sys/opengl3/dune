@@ -95,7 +95,7 @@
     (language c)
     (flags (:include cflags))
     (names imgui_opengl3_generated_funs))
-  (c_library_flags -lstdc++ -fPIC (:include lflags))
+  (c_library_flags -lstdc++ (:include lflags))
   (libraries imgui.sys imgui.opengl3_types_f tgls.tgl3 ctypes ctypes.stubs
              imgui.opengl3_ffi_f
              imgui.opengl3_generated_types))

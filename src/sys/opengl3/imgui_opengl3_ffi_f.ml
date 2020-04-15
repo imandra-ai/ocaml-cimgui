@@ -23,6 +23,12 @@ module Make(F : Cstubs.FOREIGN) = struct
     foreign "ImGui_ImplOpenGL3_RenderDrawData"
       (ptr Imgui_sys.ImDrawData.t @-> returning void)
 
+  let glewInit =
+    foreign "glewInit" (void @-> returning (uint))
+
+  let glewGetErrorString =
+    foreign "glewGetErrorString" (uint @-> returning string)
+
   (* TODO
 
 // (Optional) Called by Init/NewFrame/Shutdown
