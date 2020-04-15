@@ -11,12 +11,21 @@ let unwrap_ = function
 
 (** Cast: get a window pointer *)
 let get_w_ptr (w:Sdl.window) : Types.window ptr =
-  Ctypes.coerce (ptr void)
-    (ptr Types.window) @@ ptr_of_raw_address @@ Sdl.unsafe_ptr_of_window w
+  Ctypes.coerce (ptr void) (ptr Types.window) @@
+  ptr_of_raw_address @@ Sdl.unsafe_ptr_of_window w
 
 (** Cast: get a unit pointer *)
 let get_gl_ctx (ctx:Sdl.gl_context) : unit ptr =
   ptr_of_raw_address @@ Sdl.unsafe_ptr_of_gl_context ctx
+
+(** Cast: get a unit pointer *)
+let get_sdl_event (e:Sdl.event ptr) : Types.event ptr =
+  Obj.magic e
+    (* FIXME !!!
+  Ctypes.coerce (ptr void) (ptr Types.event) @@
+  Ctypes.coerce (ptr Tsdl.Sdl.event) (ptr void) @@
+  e
+       *)
 
 let create_window_d3d ?(w=800) ?(h=800) (flags:Sdl.Window.flags) : Types.window ptr =
   let w = Sdl.create_window "sdl" ~w ~h flags |> unwrap_ |> get_w_ptr in
@@ -49,4 +58,5 @@ let create_window_vulkan ?(w=800) ?(h=800) (flags:Sdl.Window.flags) : Types.wind
 
 let new_frame = Ffi.new_frame
 let process_event = Ffi.process_event
+let shutdown = Ffi.shutdown
 

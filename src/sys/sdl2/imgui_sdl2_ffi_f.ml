@@ -28,4 +28,8 @@ module Make(F : Cstubs.FOREIGN) = struct
   let process_event =
     foreign "ImGui_ImplSDL2_ProcessEvent"
       (ptr event @-> returning bool)
+
+  let shutdown =
+    foreign "ImGui_ImplSDL2_Shutdown"
+      (void @-> returning void)
 end

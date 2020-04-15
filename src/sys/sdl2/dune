@@ -7,7 +7,7 @@
   (public_name imgui.sdl2_types_f)
   (modules imgui_sdl2_types_f)
   (flags :standard -warn-error -a+8 -w -9)
-  (libraries ctypes ctypes.stubs))
+  (libraries ctypes ctypes.stubs tsdl))
 
 (executable
   (name imgui_sdl2_types_stubgen)
