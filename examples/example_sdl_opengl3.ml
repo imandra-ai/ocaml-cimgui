@@ -55,10 +55,7 @@ let () =
 
   let win, sdl_win, io, ctx = create_window_opengl3 () in
 
-  setf !@io f_DisplaySize (mk_vec2 800. 600.);
-  (*
   setf !@io f_DisplaySize (mk_vec2 1920. 1080.);
-  *)
   let fonts = getf !@io f_Fonts in
   let tex_w = allocate int 0 in
   let tex_h = allocate int 0 in
@@ -73,15 +70,15 @@ let () =
   let sdl_event = Sdl.Event.create () in
   let my_f = allocate float 0. in
   let demo_win = allocate bool false in
+  let simple_win = ref false in
   let quit = ref false in
 
   while not !quit do
     (* poll and handle events *)
     while Sdl.poll_event (Some sdl_event) do
-      (*
-      let ok = Imgui_sdl2.process_event null (* TODO: we need to provide the event  *)in
+      (* NOTE: unsafe for now *)
+      let ok = Imgui_sdl2.process_event (Imgui_sdl2.get_sdl_event sdl_event) in
       if not ok then Printf.printf "imgui: fail to process event\n%!";
-      *)
       if Sdl.Event.(get sdl_event typ) = Sdl.Event.quit then (
         quit := true
       ) else if Sdl.Event.(get sdl_event typ) = Sdl.Event.window_event &&
@@ -96,6 +93,14 @@ let () =
       )
     done;
 
+    (* TODO: change this? to resize dynamically?
+    setf !@io f_DisplaySize
+      (let w,h = sdl_u_ @@ Sdl.get_renderer_output_size
+         @@ sdl_u_ @@ Sdl.get_renderer sdl_win
+       in
+       (mk_vec2 (float_of_int w) (float_of_int h)));
+       *)
+
     incr i;
     Printf.printf "new frame (%d)\n%!" !i;
     Imgui_opengl3.new_frame();
@@ -105,9 +110,7 @@ let () =
     I.igNewFrame();
     Printf.printf "new frame IG ✔\n%!";
 
-    (* TODO: poll *)
-
-    I.igText (Printf.sprintf "hello world! (frame %d)" i);
+    I.igText (Printf.sprintf "hello world! (frame %d)" !i);
     let slider_changed =
       I.igSliderFloat "float slider" (Some my_f) 0. 1. "%.3f" 1.0
     in
@@ -115,7 +118,20 @@ let () =
     if I.igCheckbox "show demo window" (Some demo_win) then (
       Printf.printf "checked boxed for demo window";
     );
-    I.igShowDemoWindow (Some demo_win);
+    if I.igButton "show other window" (mk_vec2 60. 60.) then (
+      Printf.printf "display other window";
+      simple_win := true;
+    );
+    if !@ demo_win then (
+      I.igShowDemoWindow (Some demo_win);
+    );
+
+    if !simple_win then (
+      ignore_bool @@ I.igBegin "simple window" None 0;
+      I.igText "tada! 🎉";
+      if I.igButton "close me" (mk_vec2 60. 60.) then simple_win := false;
+      I.igEnd();
+    );
 
     I.igRender();
     Gl.viewport
@@ -129,9 +145,11 @@ let () =
     ()
   done;
 
+  Printf.printf "shutdown…\n%!";
   Imgui_opengl3.shutdown();
   Imgui_sdl2.shutdown ();
   I.igDestroyContext (Some ctx);
   Sdl.destroy_window sdl_win;
   Sdl.quit();
+  Printf.printf "bye!\n%!";
   ()

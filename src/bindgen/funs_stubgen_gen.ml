@@ -66,9 +66,10 @@ let () =
           | None | Some 0 -> mk_ml_name cname
           | Some n -> spf "%s%d" (mk_ml_name cname) n
         in
-        bpfl "\n  (** function %s\n   args: [%s] *)"
+        bpfl "\n  (** function %s\n   args: [%s]\n   argsoriginal: [%s] *)"
           (JU.member "funcname" d |> JU.to_string)
-          (escape_c_ (JU.member "args" d|>JU.to_string));
+          (escape_c_ (JU.member "args" d|>JU.to_string))
+          (escape_c_ (JU.member "argsoriginal" d|>JU.to_string));
         bpf "  let %s = foreign %S (" ml_name cname;
         List.iter
           (fun arg ->

@@ -19,9 +19,9 @@ let get_gl_ctx (ctx:Sdl.gl_context) : unit ptr =
   ptr_of_raw_address @@ Sdl.unsafe_ptr_of_gl_context ctx
 
 (** Cast: get a unit pointer *)
-let get_sdl_event (e:Sdl.event ptr) : Types.event ptr =
-  Obj.magic e
-    (* FIXME !!!
+let get_sdl_event (e:Sdl.event) : Types.event ptr =
+  addr (Obj.magic e : Types.event)
+    (* FIXME !!! need upstream support from Tsdl
   Ctypes.coerce (ptr void) (ptr Types.event) @@
   Ctypes.coerce (ptr Tsdl.Sdl.event) (ptr void) @@
   e
