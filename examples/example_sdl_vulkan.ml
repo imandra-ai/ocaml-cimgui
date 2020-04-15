@@ -16,35 +16,12 @@ let mk_vec2 x y =
 
 let ignore_bool : bool -> unit = ignore
 
-(** @param gl_ctx the openGL context *)
-let create_window_opengl3 ?(w=800) ?(h=800) () : _ ptr * _ * I.ImGuiContext.t ptr =
-  let open Imgui_sdl2 in
-  (* TODO: provide these flags somewhere else *)
-  let flags = Sdl.Window.(opengl + resizable + allow_highdpi) in
-  let sdl_w = Sdl.create_window "sdl" ~w ~h flags |> unwrap_ in
-  let w = get_w_ptr sdl_w in
-  let gl_ctx = Sdl.gl_create_context sdl_w |> unwrap_ in
-  Sdl.gl_make_current sdl_w gl_ctx |> unwrap_;
-  if get_gl_ctx gl_ctx |> is_null then failwith "sdl init: gl_context is null";
-
-  let ctx = I.igCreateContext None in
-  let io = I.igGetIO () in
-
-  if not @@ Ffi.init_for_opengl w (get_gl_ctx gl_ctx) then (
-    failwith "failed during initialization of openGL SDL_Window";
-  );
-
-  Printf.printf "init imgui opengl\n%!";
-  if not @@ Imgui_opengl3.init None then (
-    failwith "failed to initialize imgui<->openGL3"
-  );
-  Printf.printf "imgui opengl initialized\n%!";
-  w, io, ctx
-
 let () =
   Printexc.record_backtrace true;
   let open I.ImGuiIO in
 
+  let ctx = I.igCreateContext None in
+  let io = I.igGetIO () in
   (* FIXME
   Printf.printf "create sdl window\n%!";
   let win, _gl_ctx = Imgui_sdl2.create_window_opengl Sdl.Window.windowed in
@@ -56,7 +33,14 @@ let () =
   Printf.printf "imgui opengl initialized\n%!";
      *)
 
-  let win, io, ctx = create_window_opengl3 () in
+  Printf.printf "create sdl window\n%!";
+  let win = Imgui_sdl2.create_window_vulkan Sdl.Window.(windowed+vulkan) in
+
+  Printf.printf "init imgui vulkan\n%!";
+  if not @@ Imgui_vulkan.init None then (
+    failwith "failed to initialize imgui<->vulkan"
+  );
+  Printf.printf "imgui vulkan initialized\n%!";
 
 (* TODO
   setf !@io f_DisplaySize (mk_vec2 1920. 1080.);
@@ -76,8 +60,8 @@ let () =
 
   for i = 0 to 200 do
     Printf.printf "new frame (%d)\n%!" i;
-    Imgui_opengl3.new_frame();
-    Printf.printf "new frame opengl ✔\n%!";
+    Imgui_vulkan.new_frame();
+    Printf.printf "new frame vulkan✔\n%!";
     Imgui_sdl2.new_frame win;
     Printf.printf "new frame sdl ✔\n%!";
     I.igNewFrame();
@@ -98,7 +82,7 @@ let () =
     ()
   done;
 
-  Imgui_opengl3.shutdown();
+  Imgui_vulkan.shutdown();
   (* TODO: destroy sdl context *)
   I.igDestroyContext (Some ctx);
   ()

@@ -1,11 +1,6 @@
 open Ctypes
-module Sdl = Tsdl.Sdl
 
 module I = Imgui_sys
-
-let sdl_u_ = function
-  | Ok x -> x
-  | Error (`Msg e) -> failwith @@ "sdl error " ^ e
 
 (*
 // dear imgui: null/dummy example application
