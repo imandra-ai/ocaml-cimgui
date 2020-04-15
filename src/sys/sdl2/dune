@@ -84,13 +84,18 @@
   (name imgui_sdl2)
   (public_name imgui.sdl2)
   (modules imgui_sdl2 imgui_sdl2_generated_funs)
-  (foreign_archives cimgui_imgui_sdl2)
+  (foreign_stubs
+    (language cxx)
+    (include_dirs
+      ../../../vendor/cimgui/generator/output/ ../../../vendor/cimgui/imgui/)
+    (flags (:include cflags) "-DIMGUI_IMPL_API=extern \"C\"")
+    (names imgui_impl_sdl))
   (foreign_stubs
     (language c)
     (flags (:include cflags))
     (names imgui_sdl2_generated_funs))
   (c_library_flags ;--enable-stdcall-fixup -Wl,--print-map
-                   (:include lflags) -lstdc++)
+                   -lstdc++)
   (libraries imgui.sys imgui.sdl2_types_f tsdl ctypes ctypes.stubs
              imgui.sdl2_ffi_f
              imgui.sdl2_generated_types))
@@ -99,17 +104,6 @@
                       (progn (echo "(")
                              (run pkg-config --cflags sdl2)
                              (echo ")"))))
-(rule (with-stdout-to lflags
-                      (progn (echo "(")
-                             (run pkg-config --libs sdl2)
-                             (echo ")"))))
 
 (copy_files ../../../vendor/cimgui/generator/output/*.h)
 (copy_files ../../../vendor/cimgui/imgui/examples/imgui_impl_sdl.cpp)
-
-(foreign_library
-  (archive_name cimgui_imgui_sdl2)
-  (language cxx)
-  (include_dirs ../../../vendor/cimgui/generator/output/ ../../../vendor/cimgui/imgui/)
-  (flags (:include cflags) "-DIMGUI_IMPL_API=extern \"C\" __declspec(dllexport)" -Wl,--kill-at)
-  (names imgui_impl_sdl))

@@ -11,10 +11,17 @@ let pfl fmt = Printf.kfprintf (fun oc -> output_char oc '\n') stdout fmt
 let path_json = "../../vendor/cimgui/generator/output/definitions.json"
 
 let is_upper c = c = Char.uppercase_ascii c
+let escape_c_ s =
+  let buf = Buffer.create (String.length s + 10) in
+  (* turn "*" into " * " to avoid producing OCaml comments *)
+  String.iter
+    (function '*' -> Buffer.add_string buf " * " | c -> Buffer.add_char buf c)
+    s;
+  Buffer.contents buf
 
-(* use `fn` rather than `static_funptr` for function pointers *)
+(* use [Foreign.funptr] to be able to pass OCaml functions *)
 let funptr =
-  "let open Ctypes in static_funptr"
+  "let open Ctypes in Foreign.funptr"
 
 let () =
   let j = Yojson.Safe.from_file path_json in
@@ -59,6 +66,9 @@ let () =
           | None | Some 0 -> mk_ml_name cname
           | Some n -> spf "%s%d" (mk_ml_name cname) n
         in
+        bpfl "  (** function %s\nargs: %s *)"
+          (JU.member "funcname" d |> JU.to_string)
+          (escape_c_ (JU.member "argsoriginal" d|>JU.to_string));
         bpf "  let %s = foreign %S (" ml_name cname;
         List.iter
           (fun arg ->
