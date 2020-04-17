@@ -82,9 +82,9 @@
 ; main binding
 
 (library
-  (name imgui_opengl3)
-  (public_name imgui.opengl3)
-  (modules imgui_opengl3 imgui_opengl3_generated_funs)
+  (name imgui_sys_opengl3)
+  (public_name imgui.sys-opengl3)
+  (modules imgui_sys_opengl3 imgui_opengl3_generated_funs)
   (foreign_stubs
     (language cxx)
     (include_dirs

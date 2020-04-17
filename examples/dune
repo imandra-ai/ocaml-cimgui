@@ -12,11 +12,11 @@
   (modules example_sdl_opengl3)
   (flags :standard -warn-error -a+8)
   (promote (into ..) (until-clean))
-  (libraries imgui.sys imgui.sdl2 imgui.opengl3 ctypes tsdl tgls.tgl3))
+  (libraries imgui imgui-sdl-opengl3))
 
-(executable
-  (name example_sdl_vulkan)
-  (modules example_sdl_vulkan)
-  (flags :standard -warn-error -a+8)
-  (promote (into ..) (until-clean))
-  (libraries imgui.sys imgui.sdl2 imgui.vulkan ctypes))
+;(executable
+;  (name example_sdl_vulkan)
+;  (modules example_sdl_vulkan)
+;  (flags :standard -warn-error -a+8)
+;  (promote (into ..) (until-clean))
+;  (libraries imgui.sys imgui.sdl2 imgui.vulkan ctypes))

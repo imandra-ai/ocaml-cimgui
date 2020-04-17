@@ -81,9 +81,9 @@
 ; main binding
 
 (library
-  (name imgui_sdl2)
-  (public_name imgui.sdl2)
-  (modules imgui_sdl2 imgui_sdl2_generated_funs)
+  (name imgui_sys_sdl2)
+  (public_name imgui.sys-sdl2)
+  (modules imgui_sys_sdl2 imgui_sdl2_generated_funs)
   (foreign_stubs
     (language cxx)
     (include_dirs

@@ -1,0 +1,8 @@
+
+(library
+  (name imgui_sdl_opengl3)
+  (public_name imgui-sdl-opengl3)
+  (synopsis "high level wrapper to run standalone with SDL+openGL3")
+  (libraries ctypes imgui imgui.sys-sdl2 imgui.sys-opengl3 tsdl tgls.tgl3)
+  (flags :standard -warn-error -a+8 -w -9))
+

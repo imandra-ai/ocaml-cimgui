@@ -13,7 +13,17 @@
   (tags (gui bindings imgui "dear imgui"))
   (depends
     (yojson (and :build (>= "1.6")))
-    (conf-cmake :build)
     ctypes))
+
+(package
+  (name imgui-sdl-opengl3)
+  (synopsis "Bindings to Dear Imgui with SDL2+openGL3 wrapper")
+  (tags (gui bindings imgui "dear imgui"))
+  (depends
+    (imgui (= version))
+    ctypes
+    tsdl
+    tgls)
+  )
 
 
