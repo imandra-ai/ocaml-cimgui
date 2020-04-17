@@ -60,12 +60,12 @@ let () =
         handle_def_fun cname d ty_args ~spec_for:i ty_ret
       done;
     ) else (
+      let ml_name = match spec_for with
+        | None | Some 0 -> mk_ml_name cname
+        | Some n -> spf "%s%d" (mk_ml_name cname) n
+      in
       try
         Buffer.clear buf;
-        let ml_name = match spec_for with
-          | None | Some 0 -> mk_ml_name cname
-          | Some n -> spf "%s%d" (mk_ml_name cname) n
-        in
         bpfl "\n  (** function %s\n   args: [%s]\n   argsoriginal: [%s] *)"
           (JU.member "funcname" d |> JU.to_string)
           (escape_c_ (JU.member "args" d|>JU.to_string))
@@ -94,6 +94,7 @@ let () =
         print_endline @@ Buffer.contents buf
       with e ->
         pfl "  (* skip definition of %s:\n  %s *)" cname (Printexc.to_string e);
+        pfl "  let %s = `Skipped" ml_name;
         ()
     )
   in
