@@ -3,6 +3,8 @@
 (name imgui)
 (version 0.1)
 (generate_opam_files true)
+(maintainers simon@imandra.ai)
+(authors "the imgui authors" simon@imandra.ai)
 (license MIT)
 (source (github aestheticintegration/ocaml-cimgui))
 (homepage https://github.com/aestheticintegration/ocaml-cimgui)

@@ -2,6 +2,8 @@
 opam-version: "2.0"
 version: "0.1"
 synopsis: "Bindings to Dear Imgui with SDL2+openGL3 wrapper"
+maintainer: ["simon@imandra.ai"]
+authors: ["the imgui authors" "simon@imandra.ai"]
 license: "MIT"
 tags: ["gui" "bindings" "imgui" "dear imgui"]
 homepage: "https://github.com/aestheticintegration/ocaml-cimgui"
