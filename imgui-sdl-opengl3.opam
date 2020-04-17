@@ -8,7 +8,7 @@ homepage: "https://github.com/aestheticintegration/ocaml-cimgui"
 bug-reports: "https://github.com/aestheticintegration/ocaml-cimgui/issues"
 depends: [
   "dune" {>= "2.0"}
-  "imgui" {= "version"}
+  "imgui" {= version}
   "ctypes"
   "tsdl"
   "tgls"

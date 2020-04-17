@@ -20,7 +20,7 @@
   (synopsis "Bindings to Dear Imgui with SDL2+openGL3 wrapper")
   (tags (gui bindings imgui "dear imgui"))
   (depends
-    (imgui (= version))
+    (imgui (= :version))
     ctypes
     tsdl
     tgls)
