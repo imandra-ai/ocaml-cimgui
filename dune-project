@@ -15,7 +15,9 @@
   (tags (gui bindings imgui "dear imgui"))
   (depends
     (yojson (and :build (>= "1.6")))
-    ctypes))
+    ctypes)
+  (depopts tgls tsdl)
+  )
 
 (package
   (name imgui-sdl-opengl3)

@@ -13,6 +13,7 @@ depends: [
   "yojson" {build & >= "1.6"}
   "ctypes"
 ]
+depopts: ["tgls" "tsdl"]
 build: [
   ["dune" "subst"] {pinned}
   [
