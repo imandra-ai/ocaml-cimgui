@@ -19,7 +19,7 @@ let main () =
     if I.igCheckbox "show demo window" (Some demo_win) then (
       Printf.printf "checked boxed for demo window";
     );
-    if I.igButton "show other window" (I.vec2 400. 400.) then (
+    if I.igButton "show other window" (I.vec2 30. 30.) then (
       Printf.printf "display other window";
       simple_win <-@ true;
     );

@@ -199,10 +199,10 @@ let parse_ty
           (try (Hashtbl.find self.tbl_decl s).enum with Not_found -> false)
         in
         if is_enum then (
-          Printf.eprintf "ty-g: do not expand typedef of enum '%s' to '%s'\n%!" s s2;
+          (*Printf.eprintf "ty-g: do not expand typedef of enum '%s' to '%s'\n%!" s s2; *)
           try_prim ~in_ptr ~fdef:false s
         ) else (
-          Printf.eprintf "ty-g: expand typedef of '%s' to '%s'\n%!" s s2;
+          (*Printf.eprintf "ty-g: expand typedef of '%s' to '%s'\n%!" s s2; *)
           try_prim ~in_ptr ~fdef:false s2
         )
       | exception Not_found -> try_prim ~in_ptr ~fdef s

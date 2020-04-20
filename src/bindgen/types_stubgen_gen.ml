@@ -66,9 +66,9 @@ let () =
       (* the integer values *)
       List.iter2
         (fun ml_c (_c_c,c_val) ->
-           bpfl "  let _%s = %dL (** for {!%s} *)\n" ml_c c_val ml_c)
+           bpfl "  let _%s = %dl (** for {!%s} *)\n" ml_c c_val ml_c)
         ml_cstors c_cstors;
-      bpfl "  let (lor) = Int64.logor";
+      bpfl "  let (lor) = Int32.logor";
       (* TODO      bpfl "  let of_int64 = coerce int64_t t"; *)
       bpfl "end";
       Buffer.contents buf, []
