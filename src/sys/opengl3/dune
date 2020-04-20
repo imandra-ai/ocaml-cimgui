@@ -44,7 +44,7 @@
 (library
   (name imgui_opengl3_generated_types)
   (public_name imgui.opengl3_generated_types)
-  (modes native)
+  (modes native byte)
   (optional)
   (modules imgui_opengl3_generated_types)
   (flags :standard -warn-error -a+8 -w -9)

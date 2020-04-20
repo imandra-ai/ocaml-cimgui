@@ -19,7 +19,7 @@ let main () =
     if I.igCheckbox "show demo window" (Some demo_win) then (
       Printf.printf "checked boxed for demo window";
     );
-    if I.igButton "show other window" (I.vec2 30. 30.) then (
+    if I.igSmallButton "show other window" then (
       Printf.printf "display other window";
       simple_win <-@ true;
     );
@@ -30,7 +30,7 @@ let main () =
     if !@ simple_win then (
       ignore (I.igBegin "simple window" None I.ImGuiWindowFlags.none : bool);
       I.igText "tada!";
-      if I.igButton "close me" (I.vec2 60. 60.) then simple_win <-@ false;
+      if I.igSmallButton "close me" then simple_win <-@ false;
       I.igEnd();
     );
   in

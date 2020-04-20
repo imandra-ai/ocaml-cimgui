@@ -44,7 +44,7 @@
 (library
   (name imgui_sdl2_generated_types)
   (public_name imgui.sdl2_generated_types)
-  (modes native)
+  (modes native byte)
   (optional)
   (modules imgui_sdl2_generated_types)
   (flags :standard -warn-error -a+8 -w -9)

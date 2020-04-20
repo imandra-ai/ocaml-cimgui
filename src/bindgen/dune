@@ -27,7 +27,7 @@
   (name imgui_generated_types)
   (public_name imgui.generated_types)
   (modules imgui_generated_types)
-  (modes native)
+  (modes native byte)
   (flags :standard -warn-error -a+8)
   (libraries ctypes ctypes.stubs ctypes.foreign))
 

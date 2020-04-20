@@ -12,7 +12,7 @@
 
 (executable
   (name imgui_vulkan_types_stubgen)
-  (modes native)
+  (modes native byte)
   (modules imgui_vulkan_types_stubgen)
   (libraries ctypes ctypes.stubs imgui_vulkan_types_f))
 
@@ -45,7 +45,7 @@
   (name imgui_vulkan_generated_types)
   (public_name imgui.vulkan_generated_types)
   (optional)
-  (modes native)
+  (modes native byte)
   (modules imgui_vulkan_generated_types)
   (flags :standard -warn-error -a+8 -w -9)
   (libraries ctypes imgui_vulkan_types_f))
@@ -56,7 +56,7 @@
 (executable
   (name imgui_vulkan_ffi_stubgen)
   (modules imgui_vulkan_ffi_stubgen)
-  (modes native)
+  (modes native byte)
   (optional)
   (flags :standard -warn-error -a+8 -w -9)
   (libraries yojson ty_g ctypes.foreign ctypes
