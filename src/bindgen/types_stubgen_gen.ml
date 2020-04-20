@@ -20,7 +20,6 @@ let () =
   in
   let graph = Ty_g.create ~tydefs () in
 
-
   let j = Yojson.Safe.from_file path_json_enums_structs in
   pfl "open Ctypes";
   pfl "module Make(S : Cstubs_structs.TYPE) = struct";
@@ -45,10 +44,11 @@ let () =
            bpfl "    (%s, constant %S int64_t);" ml_c c_c)
         ml_cstors c_cstors;
       bpfl "  ]";
+      (* TODO: emit some "lor" operator*)
       bpfl "end";
       Buffer.contents buf, []
     ) in
-    Ty_g.add_decl graph name ~code ~ml_name;
+    Ty_g.add_decl ~enum:true graph name ~code ~ml_name;
   in
   (* declare as opaque *)
   let handle_opaque reason name =

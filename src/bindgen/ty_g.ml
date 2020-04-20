@@ -9,6 +9,7 @@ type ml_names = {decl: string; def: string option}
 type node = {
   code: (string*dep list) lazy_t;
   ml_name: string;
+  enum: bool;
   mutable seen: bool;
 }
 type t = {
@@ -31,16 +32,16 @@ let create ~tydefs () : t =
     tydefs;
   }
 
-let add_decl self name ~ml_name ~code =
-  Printf.eprintf "graph.add-decl %s\n%!" name;
+let add_decl ?(enum=false) self name ~ml_name ~code =
+  Printf.eprintf "graph.add-decl %s (enum=%B)\n%!" name enum;
   assert (not @@ Hashtbl.mem self.tbl_decl name);
-  let n = {code;ml_name; seen=false} in
+  let n = {code;ml_name;seen=false;enum} in
   Hashtbl.add self.tbl_decl name n
 
 let add_def self name ~ml_name ~code =
   Printf.eprintf "graph.add-def %s\n%!" name;
   assert (not @@ Hashtbl.mem self.tbl_def name);
-  let n = {code;ml_name; seen=false} in
+  let n = {code;ml_name; seen=false;enum=false} in
   Hashtbl.add self.tbl_def name n
 
 let sorted self : string list =
@@ -190,7 +191,13 @@ let parse_ty
   and expand_ty ~in_ptr ~fdef s =
     if fdef then
       match List.assoc s self.tydefs with
-      | s2 -> try_prim ~in_ptr ~fdef:false s2
+      | s2 ->
+        (* [s] is a typedef of [s2], but only expand it if it's not an enum *)
+        let is_enum =
+          (try (Hashtbl.find self.tbl_decl s).enum with Not_found -> false)
+        in
+        if is_enum then try_prim ~in_ptr ~fdef:false s
+        else try_prim ~in_ptr ~fdef:false s2
       | exception Not_found -> try_prim ~in_ptr ~fdef s
     else try_prim ~in_ptr ~fdef s
   and lookup_ty ~in_ptr s =
