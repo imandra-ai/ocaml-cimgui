@@ -67,15 +67,14 @@ class menu_item_with_sel ?(shortcut="") (label:string) () =
 let menu_item ?(shortcut="") (label:string) f : unit =
   if I.igMenuItemBool label shortcut false true then f ()
 
-(** Create a button, call [f()] if it's clicked *)
+(** Create a button, call [f()] if it's clicked.
+    @param dim the dimension, if not provided {!igSmallButton} is called. *)
 let button ?dim (label:string) f =
-  let dim = match dim with
-    | None -> vec2 (float_of_int @@ String.length label * 18) 18.
-    | Some d -> d
+  let clicked = match dim with
+    | None -> I.igSmallButton label
+    | Some d -> I.igButton label d
   in
-  if I.igButton label dim then (
-    f()
-  )
+  if clicked then f()
 
 class text_input_callback_data (d: ImGuiInputTextCallbackData.t ptr) =
   let open ImGuiInputTextCallbackData in
@@ -108,7 +107,7 @@ class text_input ?(bufsize=1024) ?(label="") ?flags () =
   in
   object
     val input_buf = allocate_n char ~count:bufsize
-    method reset = input_buf <-@ '\x00'
+    method clear = input_buf <-@ '\x00'
     method content =
       let s = string_from_ptr input_buf ~length:1024 in
       let s =
