@@ -52,7 +52,7 @@ let () =
         List.map
           (fun (name,v) ->
              let ml_name = Str_.rsplit_on_char '_' name in
-             ml_name, Printf.sprintf "%s (** value %d *) " ml_name v)
+             ml_name, Printf.sprintf "%s (** value %d *)\n" ml_name v)
           c_cstors
         |> List.split
       in
