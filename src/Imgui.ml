@@ -52,6 +52,7 @@ let menu_item ?(shortcut="") (label:string) f : unit =
 class menu_item_with_sel ?(shortcut="") (label:string) () =
   object
     val mutable selected = allocate bool false
+    method selected = !@ selected
 
     (** Call [f ~sel:true ()] when selected, [f ~sel:false ()] when  clicked *)
     method render f =
