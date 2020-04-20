@@ -44,7 +44,26 @@ let menu (label:string) (active:bool) f : unit =
     I.igEndMenu();
   )
 
-let menu_item_bool ?(shortcut="") (label:string) f : unit =
+(** Simple menu item, call [f()] when it's clicked *)
+let menu_item ?(shortcut="") (label:string) f : unit =
+  if I.igMenuItemBool label shortcut false true then f ()
+
+(** Simple menu item with selection. *)
+class menu_item_with_sel ?(shortcut="") (label:string) () =
+  object
+    val mutable selected = allocate bool false
+
+    (** Call [f ~sel:true ()] when selected, [f ~sel:false ()] when  clicked *)
+    method render f =
+      if I.igMenuItemBoolPtr label shortcut (Some selected) true then (
+        f ~sel:false ()
+      ) else if !@selected then (
+        f ~sel:true ()
+      )
+
+  end
+
+let menu_item ?(shortcut="") (label:string) f : unit =
   if I.igMenuItemBool label shortcut false true then f ()
 
 (** Create a button, call [f()] if it's clicked *)
@@ -89,7 +108,7 @@ class text_input ?(bufsize=1024) ?(label="") ?flags () =
   object
     val input_buf = allocate_n char ~count:bufsize
     method reset = input_buf <-@ '\x00'
-    method text =
+    method content =
       let s = string_from_ptr input_buf ~length:1024 in
       let s =
         try String.sub s 0 (String.index s '\x00')
