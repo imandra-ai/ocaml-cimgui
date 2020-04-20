@@ -12,6 +12,7 @@ depends: [
   "dune" {>= "2.0"}
   "yojson" {build & >= "1.6"}
   "ctypes"
+  "integers"
 ]
 depopts: ["tgls" "tsdl"]
 build: [

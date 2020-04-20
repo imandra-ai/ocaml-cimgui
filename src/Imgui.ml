@@ -1,6 +1,10 @@
 
 module Ctypes = Ctypes
 module I = Imgui_sys
+module Integers = struct
+  module U = Unsigned
+  module S = Signed
+end
 include Imgui_sys
 include Ctypes
 
@@ -43,10 +47,6 @@ let menu (label:string) (active:bool) f : unit =
     f();
     I.igEndMenu();
   )
-
-(** Simple menu item, call [f()] when it's clicked *)
-let menu_item ?(shortcut="") (label:string) f : unit =
-  if I.igMenuItemBool label shortcut false true then f ()
 
 (** Simple menu item with selection. *)
 class menu_item_with_sel ?(shortcut="") (label:string) () =

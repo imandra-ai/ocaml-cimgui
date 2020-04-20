@@ -2,4 +2,4 @@
 (library
   (name imgui)
   (public_name imgui)
-  (libraries ctypes imgui.sys))
+  (libraries ctypes imgui.sys integers))

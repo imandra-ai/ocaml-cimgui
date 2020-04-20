@@ -48,7 +48,7 @@ let () =
       let ret, _ = Ty_g.parse_ty ~funptr graph ty_ret in
       pfl "  let %s = foreign %S (void @-> returning %s)" ml_name cname ret;
     with e ->
-      pfl "  let _f_%s = [`Skipped]\n  (* omitted: constant %s:\n    %s *)"
+      pfl "  let _f_%s = [`Skipped]\n  (** omitted: constant %s:\n    %s *)"
         (mk_ml_name cname) cname (Printexc.to_string e);
   in
   let rec handle_def_fun cname d ty_args ?spec_for ty_ret =
@@ -60,14 +60,15 @@ let () =
         handle_def_fun cname d ty_args ~spec_for:i ty_ret
       done;
     ) else (
-      let ml_name = match spec_for with
-        | None | Some 0 -> mk_ml_name cname
-        | Some n -> spf "%s%d" (mk_ml_name cname) n
+      let ml_name, n = match spec_for with
+        | None | Some 0 -> mk_ml_name cname, 0
+        | Some n -> spf "%s%d" (mk_ml_name cname) n, n
       in
       try
         Buffer.clear buf;
-        bpfl "\n  (** function %s\n   args: [%s]\n   argsoriginal: [%s] *)"
+        bpfl "\n  (** function %s%s\n   args: [%s]\n   argsoriginal: [%s] *)"
           (JU.member "funcname" d |> JU.to_string)
+          (if vararg then spf " specialized for %d args" n else "")
           (escape_c_ (JU.member "args" d|>JU.to_string))
           (escape_c_ (JU.member "argsoriginal" d|>JU.to_string));
         bpf "  let %s = foreign %S (" ml_name cname;
@@ -93,7 +94,7 @@ let () =
         bpfl " returning (%s))" ty;
         print_endline @@ Buffer.contents buf
       with e ->
-        pfl "  (* skip definition of %s:\n  %s *)" cname (Printexc.to_string e);
+        pfl "\n  (** skip definition of %s:\n  %s *)" cname (Printexc.to_string e);
         pfl "  let %s = `Skipped" ml_name;
         ()
     )
