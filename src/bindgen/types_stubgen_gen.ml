@@ -36,7 +36,9 @@ let () =
   let handle_enum name args =
     (* for some reason cimgui adds a "_" at the end of the type… *)
     let name = strip_last_underscore name in
-    Printf.eprintf "handle enum %s\n%!" name;
+    let actual_ty, _deps = Ty_g.parse_ty graph name in
+    assert (_deps = []);
+    Printf.eprintf "handle enum %s, typedef %s\n%!" name actual_ty;
     let ml_name = spf "%s.t" name in
     let code = lazy (
       Buffer.clear buf;
@@ -48,27 +50,26 @@ let () =
              JU.member "name" c |> JU.to_string,
              JU.member "calc_value" c |> JU.to_int)
           args in
-      let ml_cstors, ml_cstors_with_vals =
+      let ml_names =
         List.map
-          (fun (name,v) ->
-             let ml_name = Str_.rsplit_on_char '_' name in
-             ml_name, Printf.sprintf "\n  | %s (** value %d *)" ml_name v)
+          (fun (name,_v) ->
+             let n = String.uncapitalize_ascii @@ Str_.rsplit_on_char '_' name in
+             if List.mem n ["end"] then n^"_" else n)
           c_cstors
-        |> List.split
       in
-      bpfl "  type t = %s" (String.concat "" @@ ml_cstors_with_vals);
-      bpfl "  let t : t typ = enum ~typedef:true %S [" name;
-      List.iter2
-        (fun ml_c (c_c,_) ->
-           bpfl "    (%s, constant %S int64_t);" ml_c c_c)
-        ml_cstors c_cstors;
-      bpfl "  ]";
+      bpfl "  let t : %s typ = typedef %s %S" actual_ty actual_ty name;
       (* the integer values *)
       List.iter2
-        (fun ml_c (_c_c,c_val) ->
-           bpfl "  let _%s = %dl (** for {!%s} *)\n" ml_c c_val ml_c)
-        ml_cstors c_cstors;
-      bpfl "  let (lor) = Int32.logor";
+        (fun ml_c (c_c,c_val) ->
+           let suffix = match actual_ty with
+             | "int32_t" | "uint32_t" -> "l"
+             | "int64_t" | "uint64_t" -> "L"
+             | _ -> ""
+           in
+           bpfl "  let %s : %s = %d%s\n  (** for %s *)\n" ml_c actual_ty
+             c_val suffix c_c)
+        ml_names c_cstors;
+      (* TODO: bpfl "  let (lor) = Int32.logor"; *)
       (* TODO      bpfl "  let of_int64 = coerce int64_t t"; *)
       bpfl "end";
       Buffer.contents buf, []

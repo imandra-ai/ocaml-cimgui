@@ -28,7 +28,7 @@ let main () =
     );
 
     if !@ simple_win then (
-      ignore (I.igBegin "simple window" None I.ImGuiWindowFlags.None : bool);
+      ignore (I.igBegin "simple window" None I.ImGuiWindowFlags.none : bool);
       I.igText "tada!";
       if I.igButton "close me" (I.vec2 60. 60.) then simple_win <-@ false;
       I.igEnd();
