@@ -33,13 +33,13 @@ let create ~tydefs () : t =
   }
 
 let add_decl ?(enum=false) self name ~ml_name ~code =
-  Printf.eprintf "graph.add-decl %s (enum=%B)\n%!" name enum;
+  Printf.eprintf "ty-g: graph.add-decl %s (enum=%B)\n%!" name enum;
   assert (not @@ Hashtbl.mem self.tbl_decl name);
   let n = {code;ml_name;seen=false;enum} in
   Hashtbl.add self.tbl_decl name n
 
 let add_def self name ~ml_name ~code =
-  Printf.eprintf "graph.add-def %s\n%!" name;
+  Printf.eprintf "ty-g: graph.add-def %s\n%!" name;
   assert (not @@ Hashtbl.mem self.tbl_def name);
   let n = {code;ml_name; seen=false;enum=false} in
   Hashtbl.add self.tbl_def name n
@@ -73,10 +73,12 @@ let sorted self : string list =
   List.rev !out
 
 let to_file (self:t) f: unit =
+  Printf.eprintf "ty-g: to-file %S\n%!" f;
   let oc = open_out f in
   Marshal.to_channel oc self []
 
-let of_file f: t=
+let of_file f: t =
+  Printf.eprintf "ty-g: of-file %S\n%!" f;
   let ic = open_in f in
   Marshal.from_channel ic
 
@@ -196,8 +198,13 @@ let parse_ty
         let is_enum =
           (try (Hashtbl.find self.tbl_decl s).enum with Not_found -> false)
         in
-        if is_enum then try_prim ~in_ptr ~fdef:false s
-        else try_prim ~in_ptr ~fdef:false s2
+        if is_enum then (
+          Printf.eprintf "ty-g: do not expand typedef of enum '%s' to '%s'\n%!" s s2;
+          try_prim ~in_ptr ~fdef:false s
+        ) else (
+          Printf.eprintf "ty-g: expand typedef of '%s' to '%s'\n%!" s s2;
+          try_prim ~in_ptr ~fdef:false s2
+        )
       | exception Not_found -> try_prim ~in_ptr ~fdef s
     else try_prim ~in_ptr ~fdef s
   and lookup_ty ~in_ptr s =
@@ -206,7 +213,7 @@ let parse_ty
     | None when Str_.contains ~sub:"(*)" s ->
       tr_fundef ~funptr s
     | None ->
-      Printf.eprintf "cannot find name %S" s;
+      Printf.eprintf "ty-g: cannot find name %S\n%!" s;
       failwith @@ spf "cannot translate type: %s" s
   in
   expand_ty ~fdef:true ~in_ptr:false s

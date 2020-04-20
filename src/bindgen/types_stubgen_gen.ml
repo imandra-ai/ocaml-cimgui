@@ -10,6 +10,11 @@ let pfl fmt = Printf.kfprintf (fun oc -> output_char oc '\n') stdout fmt
 let path_json_typedefs = "../../vendor/cimgui/generator/output/typedefs_dict.json"
 let path_json_enums_structs = "../../vendor/cimgui/generator/output/structs_and_enums.json"
 
+let strip_last_underscore (s:string) : string =
+  assert (s <> "");
+  let n = String.length s in
+  if s.[n-1] = '_' then String.sub s 0 (n-1) else s
+
 let is_upper c = c = Char.uppercase_ascii c
 
 let () =
@@ -29,21 +34,40 @@ let () =
   let buf = Buffer.create 256 in
   let bpfl fmt = Printf.kbprintf (fun buf -> Buffer.add_char buf '\n') buf fmt in
   let handle_enum name args =
+    (* for some reason cimgui adds a "_" at the end of the type… *)
+    let name = strip_last_underscore name in
     Printf.eprintf "handle enum %s\n%!" name;
     let ml_name = spf "%s.t" name in
     let code = lazy (
       Buffer.clear buf;
       bpfl "module %s = struct" name;
       let args = JU.to_list args in
-      let c_cstors = List.map (JU.member "name" %> JU.to_string) args in
-      let ml_cstors = List.map (Str_.rsplit_on_char '_') c_cstors in
-      bpfl "  type t = %s" (String.concat " | " ml_cstors);
+      let c_cstors =
+        List.map
+          (fun c ->
+             JU.member "name" c |> JU.to_string,
+             JU.member "calc_value" c |> JU.to_int)
+          args in
+      let ml_cstors, ml_cstors_with_vals =
+        List.map
+          (fun (name,v) ->
+             let ml_name = Str_.rsplit_on_char '_' name in
+             ml_name, Printf.sprintf "%s (** value %d *) " ml_name v)
+          c_cstors
+        |> List.split
+      in
+      bpfl "  type t = %s" (String.concat " | " @@ ml_cstors_with_vals);
       bpfl "  let t : t typ = enum ~typedef:true %S [" name;
       List.iter2
-        (fun ml_c c_c ->
+        (fun ml_c (c_c,_) ->
            bpfl "    (%s, constant %S int64_t);" ml_c c_c)
         ml_cstors c_cstors;
       bpfl "  ]";
+      (* the integer values *)
+      List.iter2
+        (fun ml_c (_c_c,c_val) ->
+           bpfl "  let int_%s = %d" ml_c c_val)
+        ml_cstors c_cstors;
       (* TODO: emit some "lor" operator*)
       bpfl "end";
       Buffer.contents buf, []
