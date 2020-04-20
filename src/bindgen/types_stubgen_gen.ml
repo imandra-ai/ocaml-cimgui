@@ -52,11 +52,11 @@ let () =
         List.map
           (fun (name,v) ->
              let ml_name = Str_.rsplit_on_char '_' name in
-             ml_name, Printf.sprintf "%s (** value %d *)\n" ml_name v)
+             ml_name, Printf.sprintf "\n  | %s (** value %d *)" ml_name v)
           c_cstors
         |> List.split
       in
-      bpfl "  type t = %s" (String.concat " | " @@ ml_cstors_with_vals);
+      bpfl "  type t = %s" (String.concat "" @@ ml_cstors_with_vals);
       bpfl "  let t : t typ = enum ~typedef:true %S [" name;
       List.iter2
         (fun ml_c (c_c,_) ->
@@ -66,9 +66,10 @@ let () =
       (* the integer values *)
       List.iter2
         (fun ml_c (_c_c,c_val) ->
-           bpfl "  let int_%s = %d" ml_c c_val)
+           bpfl "  let _%s = %dL (** for {!%s} *)\n" ml_c c_val ml_c)
         ml_cstors c_cstors;
-      (* TODO: emit some "lor" operator*)
+      bpfl "  let (lor) = Int64.logor";
+      (* TODO      bpfl "  let of_int64 = coerce int64_t t"; *)
       bpfl "end";
       Buffer.contents buf, []
     ) in
