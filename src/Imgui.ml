@@ -2,8 +2,7 @@
 module Ctypes = Ctypes
 module I = Imgui_sys
 include Imgui_sys
-
-open Ctypes
+include Ctypes
 
 module Infix = struct
   let (!@) = (!@)
@@ -16,13 +15,6 @@ module Infix = struct
   (** Access a structure field *)
 end
 include Infix
-
-(** A pointer to a Ctypes value *)
-type 'a ptr = 'a Ctypes.ptr
-
-let setf = Ctypes.setf
-let getf = Ctypes.getf
-let allocate = Ctypes.allocate
 
 let vec2 x y : ImVec2.t =
   let v2 = make ImVec2.t in
