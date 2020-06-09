@@ -2,8 +2,10 @@
 (executable
   (name example)
   (modules example)
+  (modes native)
   (flags :standard -warn-error -a+8)
   (promote (into ..) (until-clean))
+  ;(c_flags lstdc++)
   (libraries imgui.sys ctypes))
 
 

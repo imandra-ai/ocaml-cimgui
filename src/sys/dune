@@ -6,6 +6,7 @@
   (foreign_stubs
     (language c)
     ;(flags -I . -lcimgui)
+    (flags :standard -lstdc++)
     (names imgui_generated_ffi))
   ;(c_flags -I ../../vendor/cimgui/)
   (foreign_archives cimgui)
@@ -13,7 +14,7 @@
   ;(static_only)
   (c_library_flags -lstdc++)
   (libraries ctypes ctypes.stubs imgui.generated_types imgui.generated_funs)
-  (flags :standard -warn-error -a+8 -w -9))
+  (flags :standard -warn-error -a+8 -w -9 -linkall))
 
 (copy_files ../../vendor/cimgui/*.cpp)
 (copy_files ../../vendor/cimgui/*.h)
@@ -24,6 +25,7 @@
 (foreign_library
  (archive_name cimgui)
  (language cxx)
+ (flags :standard -lstdc++)
  (include_dirs imgui)
  (names cimgui imgui imgui_demo imgui_draw imgui_widgets
         imgui_stdlib))
