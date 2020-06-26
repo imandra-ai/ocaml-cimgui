@@ -12,9 +12,19 @@
 (executable
   (name example_sdl_opengl3)
   (modules example_sdl_opengl3)
+  (modes native)
   (flags :standard -warn-error -a+8)
   (promote (into ..) (until-clean))
   (libraries imgui imgui-sdl-opengl3))
+
+(executable
+  (name bin_explorer)
+  (modules bin_explorer)
+  ;(description "GUI explorer for msgpack and cbor")
+  (modes native)
+  (flags :standard -warn-error -a+8)
+  (promote (into ..) (until-clean))
+  (libraries imgui imgui-sdl-opengl3 containers cbor msgpck))
 
 ;(executable
 ;  (name example_sdl_vulkan)
