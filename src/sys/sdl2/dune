@@ -92,7 +92,7 @@
     (language cxx)
     (include_dirs
       ../../../vendor/cimgui/generator/output/ ../../../vendor/cimgui/imgui/)
-    (flags (:include cflags) "-DIMGUI_IMPL_API=extern \"C\"")
+    (flags (:include cflags) -fPIC "-DIMGUI_IMPL_API=extern\"C\"")
     (names imgui_impl_sdl))
   (foreign_stubs
     (language c)
